@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Небесная сфера · системы координат</title>
+<style>
+  :root{
+    --bg:#070912; --panel:rgba(14,18,32,0.82); --line:rgba(255,255,255,0.10);
+    --ink:#e8ecf6; --muted:#8b93ad; --accent:#9bb4ff;
+    --horizon:#ff9e4a; --equator:#4ea3ff; --ecliptic:#ffd24a;
+    --galactic:#c77dff; --supergalactic:#5fe0a0; --star:#fff4c2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:'Inter','Segoe UI',system-ui,sans-serif;overflow:hidden}
+  #scene{position:fixed;inset:0}
+  #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;transform:translate(-50%,-50%);
+    font:600 12px/1.1 'Inter',sans-serif;letter-spacing:.02em;
+    white-space:nowrap;text-shadow:0 0 6px #000,0 0 6px #000;pointer-events:none}
+
+  #panel{position:fixed;top:16px;left:16px;width:316px;max-height:calc(100% - 32px);
+    overflow:auto;background:var(--panel);backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:16px;padding:18px 18px 20px}
+  h1{margin:0 0 2px;font-size:16px;font-weight:700;letter-spacing:.01em}
+  .sub{margin:0 0 16px;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .group{margin-bottom:16px}
+  .group > .hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);margin-bottom:9px}
+
+  .sys{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;
+    cursor:pointer;transition:background .15s;user-select:none}
+  .sys:hover{background:rgba(255,255,255,0.04)}
+  .sys input{display:none}
+  .swatch{width:13px;height:13px;border-radius:4px;margin-top:2px;flex:0 0 auto;
+    box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;opacity:.35;transition:opacity .15s}
+  .sys.on .swatch{opacity:1;box-shadow:0 0 9px currentColor}
+  .sys .nm{font-size:13px;font-weight:600;line-height:1.25}
+  .sys .rc{font-size:10.5px;color:var(--muted);line-height:1.3;margin-top:2px}
+  .sys.on .nm{color:#fff}
+
+  .ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:12.5px;color:var(--ink);margin-bottom:12px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;
+    background:rgba(255,255,255,.18);width:150px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px var(--accent)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border:none;border-radius:50%;
+    background:var(--accent);cursor:pointer}
+  .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;min-width:46px;text-align:right}
+
+  .seg{display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+    border-radius:10px;padding:4px;margin-bottom:10px}
+  .seg button{flex:1;background:none;border:none;color:var(--muted);border-radius:7px;
+    padding:7px 0;font:600 12.5px/1 'Inter',sans-serif;cursor:pointer;transition:.15s}
+  .seg button.on{background:var(--accent);color:#0a0d16}
+  .seg-cap{font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:6px 11px;font-size:12px;cursor:pointer;transition:background .15s;width:100%}
+  .btn:hover{background:rgba(255,255,255,.12)}
+
+  #coords{margin-top:4px;border-top:1px solid var(--line);padding-top:14px}
+  .crow{display:flex;justify-content:space-between;align-items:baseline;
+    font:500 12px/1.5 ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    font-variant-numeric:tabular-nums;padding:1px 0}
+  .crow .k{color:var(--muted)}
+  .ce{color:var(--equator)} .cc{color:var(--ecliptic)} .ch{color:var(--horizon)}
+  .hint{font-size:10.5px;color:var(--muted);line-height:1.45;margin-top:13px;
+    border-top:1px solid var(--line);padding-top:12px}
+  .hint b{color:var(--ink);font-weight:600}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+  @media (max-width:560px){#panel{width:calc(100% - 24px);left:12px;top:12px}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="labels"></div>
+
+<div id="panel">
+  <h1>Небесная сфера</h1>
+  <p class="sub">Наблюдатель — в центре. Каждая система = <b style="color:var(--ink)">плоскость + полюса + начало отсчёта</b>.</p>
+
+  <div class="group">
+    <div class="hd">Системы координат</div>
+    <label class="sys on" data-sys="equator">
+      <input type="checkbox" checked>
+      <span class="swatch" style="background:var(--equator);color:var(--equator)"></span>
+      <span><span class="nm">Экваториальная</span></span>
+    </label>
+    <label class="sys on" data-sys="horizon">
+      <input type="checkbox" checked>
+      <span class="swatch" style="background:var(--horizon);color:var(--horizon)"></span>
+      <span><span class="nm">Горизонтальная</span></span>
+    </label>
+    <label class="sys" data-sys="ecliptic">
+      <input type="checkbox">
+      <span class="swatch" style="background:var(--ecliptic);color:var(--ecliptic)"></span>
+      <span><span class="nm">Эклиптическая</span></span>
+    </label>
+    <label class="sys" data-sys="galactic">
+      <input type="checkbox">
+      <span class="swatch" style="background:var(--galactic);color:var(--galactic)"></span>
+      <span><span class="nm">Галактическая</span></span>
+    </label>
+    <label class="sys" data-sys="supergalactic">
+      <input type="checkbox">
+      <span class="swatch" style="background:var(--supergalactic);color:var(--supergalactic)"></span>
+      <span><span class="nm">Супергалактическая</span></span>
+    </label>
+  </div>
+
+  <div class="group">
+    <div class="hd">Суточное вращение</div>
+    <div class="seg-cap">Что вращается на самом деле — одно и то же относительное движение, но что считать неподвижным:</div>
+    <div class="seg" id="seg">
+      <button data-mode="sky" class="on">Небо</button>
+      <button data-mode="us">Мы</button>
+      <button data-mode="stop">Стоп</button>
+    </div>
+    <div class="ctl" style="margin-bottom:6px"><span>Скорость</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <input id="spd" type="range" min="0" max="100" value="40" step="1">
+      </span></div>
+  </div>
+
+  <div class="group">
+    <div class="hd">Наблюдатель</div>
+    <div class="ctl"><span>Широта&nbsp;φ</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <input id="lat" type="range" min="-90" max="90" value="56" step="1">
+        <span class="val" id="latv">+56°</span></span></div>
+    <button class="btn" id="reset">Сбросить вид</button>
+  </div>
+
+  <div id="coords">
+    <div class="hd" style="margin-bottom:9px">Координаты звезды</div>
+    <div class="crow ce"><span class="k">экв.&nbsp;&nbsp;α / δ</span><span class="v" id="eq">—</span></div>
+    <div class="crow cc"><span class="k">экл.&nbsp;&nbsp;λ / β</span><span class="v" id="ec">—</span></div>
+    <div class="crow ch"><span class="k">гор.&nbsp;&nbsp;A / h</span><span class="v" id="hz">—</span></div>
+  </div>
+
+  <div class="hint">
+    Переключи <b>«Мы»</b> и <b>«Небо»</b>: относительное движение одинаково, меняется лишь точка зрения. Гор. координаты звезды (A/h) при этом «плывут» — звезда восходит и заходит, а экв. (α/δ) стоят на месте.<br>
+    <b>Звезду</b> можно перетащить, пустое поле — вращать вид, колесо — зум.
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D2R=Math.PI/180, R2D=180/Math.PI, R=5;
+const C={horizon:0xff9e4a,equator:0x4ea3ff,ecliptic:0xffd24a,galactic:0xc77dff,supergalactic:0x5fe0a0,star:0xfff4c2};
+const YAXIS=new THREE.Vector3(0,1,0);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,1000);
+camera.position.set(0,4.5,15.5);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+document.getElementById('scene').appendChild(renderer.domElement);
+
+// world (view orientation) > sky (rotates in "Небо" mode) + ground (rotates in "Мы" mode)
+const world=new THREE.Group(); scene.add(world);
+const sky=new THREE.Group(); world.add(sky);
+const ground=new THREE.Group(); world.add(ground);
+
+// faint base sphere (view-fixed ambiance)
+world.add(new THREE.Mesh(new THREE.SphereGeometry(R,40,28),
+  new THREE.MeshBasicMaterial({color:0x1a2236,transparent:true,opacity:0.16,side:THREE.BackSide})));
+
+// star field — belongs to sky
+(function(){
+  const g=new THREE.BufferGeometry(), N=900, p=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const u=Math.random()*2-1,t=Math.random()*Math.PI*2,r=R*2.4*(0.85+Math.random()*0.15),s=Math.sqrt(1-u*u);
+    p[i*3]=r*s*Math.cos(t);p[i*3+1]=r*u;p[i*3+2]=r*s*Math.sin(t);}
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  sky.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.045,transparent:true,opacity:0.55})));
+})();
+
+function V(x,y,z){return new THREE.Vector3(x,y,z);}
+function perp(n){const a=Math.abs(n.x)<0.9?V(1,0,0):V(0,1,0);const b1=new THREE.Vector3().crossVectors(n,a).normalize();const b2=new THREE.Vector3().crossVectors(n,b1).normalize();return[b1,b2];}
+function circlePts(center,b1,b2,rad,seg=128){const a=[];for(let i=0;i<=seg;i++){const t=i/seg*Math.PI*2;a.push(center.clone().addScaledVector(b1,Math.cos(t)*rad).addScaledVector(b2,Math.sin(t)*rad));}return a;}
+function line(pts,color,op){const g=new THREE.BufferGeometry().setFromPoints(pts);return new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));}
+function eqVec(raDeg,decDeg){const a=raDeg*D2R,d=decDeg*D2R;return V(Math.cos(d)*Math.cos(a),Math.sin(d),-Math.cos(d)*Math.sin(a));}
+
+function frames(lat){
+  const f={};
+  f.equator={pole:V(0,1,0),u:V(1,0,0)};
+  f.ecliptic={pole:V(0,Math.cos(23.44*D2R),Math.sin(23.44*D2R)),u:V(1,0,0)};
+  const phi=lat*D2R;
+  f.horizon={pole:V(Math.cos(phi),Math.sin(phi),0),u:V(Math.sin(phi),-Math.cos(phi),0)};
+  f.galactic={pole:eqVec(192.85,27.13),u:eqVec(266.405,-28.936)};
+  f.supergalactic={pole:eqVec(283.75,15.71),u:eqVec(42.31,59.53)};
+  for(const k in f){const fr=f[k];fr.pole.normalize();
+    fr.u.addScaledVector(fr.pole,-fr.u.dot(fr.pole)).normalize();
+    fr.v=new THREE.Vector3().crossVectors(fr.pole,fr.u).normalize();}
+  return f;
+}
+
+function buildSystem(fr,color){
+  const grp=new THREE.Group();
+  const[b1,b2]=perp(fr.pole);
+  grp.add(line(circlePts(V(0,0,0),b1,b2,R),color,0.95));
+  [30,60].forEach(d=>{const r=Math.cos(d*D2R)*R,off=Math.sin(d*D2R)*R;
+    grp.add(line(circlePts(fr.pole.clone().multiplyScalar(off),b1,b2,r),color,0.22));
+    grp.add(line(circlePts(fr.pole.clone().multiplyScalar(-off),b1,b2,r),color,0.22));});
+  for(let lon=0;lon<180;lon+=30){
+    const d=fr.u.clone().multiplyScalar(Math.cos(lon*D2R)).addScaledVector(fr.v,Math.sin(lon*D2R));
+    const n=new THREE.Vector3().crossVectors(fr.pole,d).normalize();
+    const[m1,m2]=perp(n);grp.add(line(circlePts(V(0,0,0),m1,m2,R),color,0.18));
+  }
+  const pg=new THREE.SphereGeometry(0.085,16,16),pm=new THREE.MeshBasicMaterial({color});
+  const p1=new THREE.Mesh(pg,pm),p2=new THREE.Mesh(pg,pm);
+  p1.position.copy(fr.pole).multiplyScalar(R);p2.position.copy(fr.pole).multiplyScalar(-R);
+  grp.add(p1);grp.add(p2);
+  return grp;
+}
+
+let FR=frames(56);
+const groups={};
+const sysList=['equator','horizon','ecliptic','galactic','supergalactic'];
+function parentOf(s){return s==='horizon'?ground:sky;}
+function rebuild(){
+  sysList.forEach(s=>{if(groups[s]){parentOf(s).remove(groups[s]);}});
+  FR=frames(parseInt(latEl.value));
+  sysList.forEach(s=>{const g=buildSystem(FR[s],C[s]);g.visible=active.has(s);groups[s]=g;parentOf(s).add(g);});
+}
+
+// star (in sky)
+let starDir=V(0.45,0.55,0.7).normalize();
+const star=new THREE.Mesh(new THREE.SphereGeometry(0.13,20,20),new THREE.MeshBasicMaterial({color:C.star}));
+star.add(new THREE.Mesh(new THREE.SphereGeometry(0.26,20,20),new THREE.MeshBasicMaterial({color:C.star,transparent:true,opacity:0.25})));
+sky.add(star);
+function placeStar(){star.position.copy(starDir).multiplyScalar(R);}
+
+function coordsIn(fr,dir){
+  const lat=Math.asin(Math.max(-1,Math.min(1,dir.dot(fr.pole))))*R2D;
+  let lon=Math.atan2(dir.dot(fr.v),dir.dot(fr.u))*R2D; if(lon<0)lon+=360;
+  return{lat,lon};
+}
+function hms(deg){let h=deg/15;const H=Math.floor(h);const m=Math.round((h-H)*60);return `${H}ʰ${String(m).padStart(2,'0')}ᵐ`;}
+function dms(deg){const s=deg<0?'−':'+';deg=Math.abs(deg);const D=Math.floor(deg);const m=Math.round((deg-D)*60);return `${s}${D}°${String(m).padStart(2,'0')}′`;}
+function deg(d){return `${d.toFixed(1)}°`;}
+function updateCoords(){
+  const e=coordsIn(FR.equator,starDir),c=coordsIn(FR.ecliptic,starDir);
+  const dirH=starDir.clone().applyAxisAngle(YAXIS,dayAngle); // star seen in the (rotated) horizon frame
+  const h=coordsIn(FR.horizon,dirH);
+  document.getElementById('eq').textContent=`${hms(e.lon)}  ${dms(e.lat)}`;
+  document.getElementById('ec').textContent=`${deg(c.lon)}  ${dms(c.lat)}`;
+  document.getElementById('hz').textContent=`${deg(h.lon)}  ${dms(h.lat)}`;
+}
+
+// labels
+const labelLayer=document.getElementById('labels');
+const labels=[];
+function addLabel(text,getPos,color,space,isOn){
+  const el=document.createElement('div');el.className='lbl';el.textContent=text;el.style.color=color;
+  labelLayer.appendChild(el);labels.push({el,getPos,space,isOn});
+}
+addLabel('Зенит',()=>FR.horizon.pole.clone().multiplyScalar(R*1.04),'#ffd9a8','ground',()=>active.has('horizon'));
+addLabel('Надир',()=>FR.horizon.pole.clone().multiplyScalar(-R*1.04),'#ffd9a8','ground',()=>active.has('horizon'));
+addLabel('точка юга',()=>FR.horizon.u.clone().multiplyScalar(R*1.04),'#ffd9a8','ground',()=>active.has('horizon'));
+addLabel('Сев. полюс мира',()=>FR.equator.pole.clone().multiplyScalar(R*1.05),'#bcd6ff','sky',()=>active.has('equator'));
+addLabel('Юж. полюс мира',()=>FR.equator.pole.clone().multiplyScalar(-R*1.05),'#bcd6ff','sky',()=>active.has('equator'));
+addLabel('♈ точка весны',()=>FR.equator.u.clone().multiplyScalar(R*1.04),'#ffe9a8','sky',()=>active.has('equator')||active.has('ecliptic'));
+addLabel('центр Галактики',()=>FR.galactic.u.clone().multiplyScalar(R*1.04),'#e3c4ff','sky',()=>active.has('galactic'));
+addLabel('★',()=>starDir.clone().multiplyScalar(R*1.06),'#fff4c2','sky',()=>true);
+const _v=new THREE.Vector3();
+function updateLabels(){
+  const camDir=camera.position.clone().normalize();
+  labels.forEach(L=>{
+    if(!L.isOn()){L.el.style.display='none';return;}
+    const m=(L.space==='ground'?ground:sky).matrixWorld;
+    const wp=L.getPos().applyMatrix4(m);
+    if(wp.clone().normalize().dot(camDir)<-0.15){L.el.style.display='none';return;}
+    _v.copy(wp).project(camera);
+    if(_v.z>1){L.el.style.display='none';return;}
+    L.el.style.display='block';
+    L.el.style.left=(_v.x*0.5+0.5)*innerWidth+'px';
+    L.el.style.top=(-_v.y*0.5+0.5)*innerHeight+'px';
+  });
+}
+
+// interaction
+const active=new Set(['equator','horizon']);
+let viewX=0.35,viewY=0.6;
+let mode='sky',dayAngle=0,speed=40;
+let dragging=null,last={x:0,y:0};
+const rayc=new THREE.Raycaster(),ndc=new THREE.Vector2();
+const cv=renderer.domElement;
+function setNDC(e){const r=cv.getBoundingClientRect();ndc.x=((e.clientX-r.left)/r.width)*2-1;ndc.y=-((e.clientY-r.top)/r.height)*2+1;}
+cv.addEventListener('pointerdown',e=>{
+  setNDC(e);rayc.setFromCamera(ndc,camera);
+  const hit=rayc.intersectObject(star,true);
+  dragging=hit.length?'star':'view';
+  last={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  if(dragging==='view'){viewY+=(e.clientX-last.x)*0.006;viewX+=(e.clientY-last.y)*0.006;
+    viewX=Math.max(-1.45,Math.min(1.45,viewX));last={x:e.clientX,y:e.clientY};}
+  else{setNDC(e);rayc.setFromCamera(ndc,camera);
+    const sphere=new THREE.Sphere(V(0,0,0),R);const pt=new THREE.Vector3();
+    if(rayc.ray.intersectSphere(sphere,pt)){starDir.copy(sky.worldToLocal(pt.clone()).normalize());placeStar();updateCoords();}}
+});
+cv.addEventListener('pointerup',e=>{dragging=null;cv.releasePointerCapture(e.pointerId);});
+cv.addEventListener('wheel',e=>{e.preventDefault();camera.fov=Math.max(22,Math.min(70,camera.fov+e.deltaY*0.03));camera.updateProjectionMatrix();},{passive:false});
+
+document.querySelectorAll('.sys').forEach(el=>{
+  el.addEventListener('click',()=>{const s=el.dataset.sys;const cb=el.querySelector('input');
+    cb.checked=!cb.checked;if(cb.checked){active.add(s);el.classList.add('on');}else{active.delete(s);el.classList.remove('on');}
+    if(groups[s])groups[s].visible=cb.checked;});
+});
+document.querySelectorAll('#seg button').forEach(b=>{
+  b.addEventListener('click',()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');mode=b.dataset.mode;});
+});
+const latEl=document.getElementById('lat'),latv=document.getElementById('latv');
+latEl.addEventListener('input',()=>{const v=parseInt(latEl.value);latv.textContent=(v>=0?'+':'−')+Math.abs(v)+'°';rebuild();updateCoords();});
+document.getElementById('spd').addEventListener('input',e=>{speed=parseInt(e.target.value);});
+document.getElementById('reset').addEventListener('click',()=>{viewX=0.35;viewY=0.6;camera.fov=45;camera.updateProjectionMatrix();});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+rebuild();placeStar();updateCoords();
+
+let lastCoordTick=0;
+function animate(t){
+  requestAnimationFrame(animate);
+  if(mode!=='stop')dayAngle+=0.00004*speed;
+  sky.setRotationFromAxisAngle(YAXIS, mode==='sky'?dayAngle:0);
+  ground.setRotationFromAxisAngle(YAXIS, mode==='us'?-dayAngle:0);
+  world.rotation.set(viewX,viewY,0);
+  world.updateMatrixWorld(true);
+  if(mode!=='stop' && t-lastCoordTick>120){updateCoords();lastCoordTick=t;}
+  updateLabels();
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
