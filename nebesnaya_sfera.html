@@ -420,27 +420,27 @@ function arcArrow(center,rad,a0,sweep,color,tubeR){
 function buildHA(){
   disposeGroup(haGrp); haMid={a:null,t:null,s:null};
   if(!active.has('hourangle'))return;
-  const sr=sky.rotation.y;
   const dec=Math.asin(Math.max(-1,Math.min(1,starDir.y)));
   const aRad=coordsIn(FR.equator,starDir).lon*D2R;                 // α (прямое восхождение)
-  const dirH=starDir.clone().applyAxisAngle(YAXIS,-dayAngle);
-  let tRad=Math.atan2(dirH.z,dirH.x); if(tRad<0)tRad+=Math.PI*2;   // t (часовой угол, к западу от меридиана)
-  const sRad=(aRad+tRad)%(Math.PI*2);                              // s = α + t
-  const angG=-sr, angF=angG-aRad;                                  // γ и часовой круг звезды на экваторе
-  // α — стрелка по экватору от γ до часового круга звезды
-  haGrp.add(arcArrow(V(0,0,0),R,angG,-aRad,C.equator,0.05));
-  haMid.a=midAng(V(0,0,0),R*1.08,angG,-aRad);
-  // t — продолжение по экватору от часового круга до меридиана (мала у меридиана)
-  haGrp.add(arcArrow(V(0,0,0),R,angF,-tRad,C.horizon,0.05));
-  haMid.t=midAng(V(0,0,0),R*1.08,angF,-tRad);
+  // мировые азимутальные углы трёх точек на экваторе (вокруг оси мира):
+  const angG=-sky.rotation.y;                                      // γ (точка весны)
+  const angF=angG-aRad;                                            // часовой круг звезды (склонение δ)
+  const angM=-ground.rotation.y;                                   // меридиан наблюдателя
+  const TAU=Math.PI*2, sgn=a=>{a=((a%TAU)+TAU)%TAU; return a>Math.PI?a-TAU:a;}; // → кратчайшая дуга (−π,π]
+  // α: γ → часовой круг звезды
+  haGrp.add(arcArrow(V(0,0,0),R,angG,sgn(angF-angG),C.equator,0.05));
+  haMid.a=midAng(V(0,0,0),R*1.08,angG,sgn(angF-angG));
+  // t: часовой круг → меридиан (знаковый часовой угол, мал у меридиана)
+  haGrp.add(arcArrow(V(0,0,0),R,angF,sgn(angM-angF),C.horizon,0.05));
+  haMid.t=midAng(V(0,0,0),R*1.08,angF,sgn(angM-angF));
   // связка часового круга со звездой (по кругу склонения)
   const Fdir=V(Math.cos(angF),0,Math.sin(angF)), pts=[];
   for(let i=0;i<=24;i++){const d=dec*i/24;
     pts.push(Fdir.clone().multiplyScalar(Math.cos(d)*R).add(V(0,Math.sin(d)*R,0)));}
   haGrp.add(line(pts,C.star,0.4));
-  // s = α + t : стрелка снаружи от γ до меридиана
-  haGrp.add(arcArrow(V(0,0,0),R*1.12,angG,-sRad,0xd8dbe6,0.034));
-  haMid.s=midAng(V(0,0,0),R*1.2,angG,-sRad);
+  // s: γ → меридиан (звёздное время)
+  haGrp.add(arcArrow(V(0,0,0),R*1.12,angG,sgn(angM-angG),0xd8dbe6,0.034));
+  haMid.s=midAng(V(0,0,0),R*1.2,angG,sgn(angM-angG));
 }
 
 function coordsIn(fr,dir){
@@ -449,6 +449,7 @@ function coordsIn(fr,dir){
   return{lat,lon};
 }
 function hms(deg){let h=deg/15;const H=Math.floor(h);const m=Math.round((h-H)*60);return `${H}ʰ${String(m).padStart(2,'0')}ᵐ`;}
+function hmsS(deg){return (deg<0?'−':'+')+hms(Math.abs(deg));}   // знаковый часовой угол ±12ʰ
 function dms(deg){const s=deg<0?'−':'+';deg=Math.abs(deg);const D=Math.floor(deg);const m=Math.round((deg-D)*60);return `${s}${D}°${String(m).padStart(2,'0')}′`;}
 function deg(d){return `${d.toFixed(1)}°`;}
 function updateCoords(){
@@ -458,10 +459,10 @@ function updateCoords(){
   document.getElementById('eq').textContent=`${hms(e.lon)}  ${dms(e.lat)}`;
   document.getElementById('ec').textContent=`${deg(c.lon)}  ${dms(c.lat)}`;
   document.getElementById('hz').textContent=`${deg(h.lon)}  ${dms(h.lat)}`;
-  // часовой угол t: 0 на меридиане (m=+x), растёт к западу (+z); звёздное время s = t + α
-  let H=Math.atan2(dirH.z,dirH.x)*R2D; if(H<0)H+=360;
+  // часовой угол t: 0 на меридиане, знаковый (−12ʰ восток … +12ʰ запад); звёздное время s = t + α
+  let H=Math.atan2(dirH.z,dirH.x)*R2D;            // (−180,180]
   let s=((H+e.lon)%360+360)%360;
-  document.getElementById('ha').textContent=hms(H);
+  document.getElementById('ha').textContent=hmsS(H);
   document.getElementById('lst').textContent=hms(s);
   if(active.has('sun')){
     const se=coordsIn(FR.equator,sunDir);
