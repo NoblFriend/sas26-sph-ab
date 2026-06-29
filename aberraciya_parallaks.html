@@ -230,19 +230,22 @@ function drawPlane(){
   function poly(pts,color,wd,op){pctx.strokeStyle=color;pctx.globalAlpha=op;pctx.lineWidth=wd;pctx.beginPath();
     let pen=false;pts.forEach(p=>{if(!p){pen=false;return;}if(pen)pctx.lineTo(p.x,p.y);else pctx.moveTo(p.x,p.y);pen=true;});pctx.stroke();pctx.globalAlpha=1;}
 
-  // сетка неба: меридианы (λ=const) и параллели (β=const)
+  // сетка неба: полный набор меридианов (λ=const) и параллелей (β=const);
+  // что попадает в поле зрения — решает proj() (отсечение по FOV), поэтому работает и у полюса
   if(show.grid){
-    const bd=beta*R2D, ld=lamStar*R2D, span=46;
-    for(let dl=-40;dl<=40;dl+=10){const lon=(ld+dl)*D2R, pts=[];
-      for(let la=Math.max(-89.5,bd-span);la<=Math.min(89.5,bd+span);la+=2)pts.push(proj(dirLB(lon,la*D2R)));
-      poly(pts,'#9fb4ff',dl===0?1.3:1,dl===0?.5:.28);}
-    for(let lat=Math.ceil((bd-span)/10)*10;lat<=bd+span;lat+=10){if(lat<-89||lat>89)continue;
-      const pts=[];for(let dl=-50;dl<=50;dl+=2)pts.push(proj(dirLB((ld+dl)*D2R,lat*D2R)));
-      poly(pts,'#9fb4ff',lat===0?1.3:1,lat===0?.5:.26);
-      const lp=proj(dirLB(ld*D2R,lat*D2R));if(lp){pctx.fillStyle='#7c8398';pctx.font='10px Inter,sans-serif';pctx.textAlign='left';pctx.textBaseline='bottom';pctx.fillText('β '+lat+'°',lp.x+4,lp.y-2);}}
-    // полюс эклиптики, если попал в поле
-    const NP=proj([0,0,1]);if(NP){pctx.fillStyle='#cdb38a';pctx.beginPath();pctx.arc(NP.x,NP.y,3,0,Math.PI*2);pctx.fill();
-      pctx.font='600 11px Inter,sans-serif';pctx.textAlign='center';pctx.textBaseline='bottom';pctx.fillText('полюс эклиптики',NP.x,NP.y-5);}
+    const ld=lamStar*R2D, adiff=(a,b)=>{let d=((a-b)%360+540)%360-180;return Math.abs(d);};
+    for(let lon=0;lon<360;lon+=15){const pts=[];
+      for(let la=-88;la<=88;la+=2)pts.push(proj(dirLB(lon*D2R,la*D2R)));
+      const main=adiff(lon,ld)<8;poly(pts,'#9fb4ff',main?1.4:1,main?.5:.24);}
+    for(let lat=-80;lat<=80;lat+=10){const pts=[];
+      for(let lo=0;lo<=360;lo+=3)pts.push(proj(dirLB(lo*D2R,lat*D2R)));
+      poly(pts,'#9fb4ff',lat===0?1.4:1,lat===0?.5:.24);
+      const lp=proj(dirLB(ld*D2R,lat*D2R));
+      if(lp){pctx.fillStyle='#7c8398';pctx.font='10px Inter,sans-serif';pctx.textAlign='left';pctx.textBaseline='bottom';pctx.fillText('β '+lat+'°',lp.x+4,lp.y-2);}}
+    // полюс эклиптики (подпись — только если не сливается со звездой в центре)
+    const NP=proj([0,0,1]);
+    if(NP){pctx.fillStyle='#cdb38a';pctx.beginPath();pctx.arc(NP.x,NP.y,3,0,Math.PI*2);pctx.fill();
+      if(Math.hypot(NP.x-cx,NP.y-cy)>36){pctx.font='600 11px Inter,sans-serif';pctx.textAlign='center';pctx.textBaseline='bottom';pctx.fillText('полюс эклиптики',NP.x,NP.y-5);}}
   }
 
   // эллипсы (увеличены единым множителем; относительные размеры κ:π настоящие)
