@@ -22,6 +22,7 @@
   .lbl.tick{font:500 10.5px/1 'Inter',sans-serif;opacity:.82;
     text-shadow:0 0 5px #000,0 0 5px #000}
   .lbl.name{font:700 12.5px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase}
+  .lbl.arc{font:800 16px/1 'Inter',sans-serif;text-shadow:0 0 6px #000,0 0 7px #000,0 0 7px #000}
 
   #panel{position:fixed;top:16px;left:16px;width:316px;max-height:calc(100% - 32px);
     overflow:auto;background:var(--panel);backdrop-filter:blur(14px);
@@ -332,6 +333,7 @@ sunGrp.add(sun); sunGrp.visible=false;
 ground.add(line(circlePts(V(0,0,0),V(1,0,0),V(0,1,0),R),0xcfd6e6,0.45));
 
 function clearGroup(g){while(g.children.length)g.remove(g.children[0]);}
+function disposeGroup(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});clearGroup(g);}
 function diurnalCircle(decR,color,op){
   return line(circlePts(V(0,Math.sin(decR)*R,0),V(1,0,0),V(0,0,1),Math.cos(decR)*R),color,op);
 }
@@ -398,16 +400,25 @@ const earthGrp=new THREE.Group(); world.add(earthGrp); earthGrp.visible=false;
 const haGrp=new THREE.Group(); world.add(haGrp);
 let haMid={a:null,t:null,s:null};
 const EX=V(1,0,0), EZ=V(0,0,1);
-function arcByAngle(center,rad,a0,sweep,color,op){
-  const seg=Math.max(2,Math.round(Math.abs(sweep)/(Math.PI*2)*180)),pts=[];
-  for(let i=0;i<=seg;i++){const t=a0+sweep*i/seg;
-    pts.push(center.clone().addScaledVector(EX,Math.cos(t)*rad).addScaledVector(EZ,Math.sin(t)*rad));}
-  return line(pts,color,op);
-}
 function midAng(center,rad,a0,sweep){const t=a0+sweep/2;
   return center.clone().addScaledVector(EX,Math.cos(t)*rad).addScaledVector(EZ,Math.sin(t)*rad);}
+// жирная дуга-стрелка: трубка по дуге + конус-наконечник в конце
+function arcArrow(center,rad,a0,sweep,color,tubeR){
+  const g=new THREE.Group();
+  if(Math.abs(sweep)<0.015)return g;
+  const seg=Math.max(6,Math.round(Math.abs(sweep)/(Math.PI*2)*200)),pts=[];
+  for(let i=0;i<=seg;i++){const t=a0+sweep*i/seg;
+    pts.push(center.clone().addScaledVector(EX,Math.cos(t)*rad).addScaledVector(EZ,Math.sin(t)*rad));}
+  const mat=new THREE.MeshBasicMaterial({color});
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),seg,tubeR,8,false),mat));
+  const a1=a0+sweep, end=center.clone().addScaledVector(EX,Math.cos(a1)*rad).addScaledVector(EZ,Math.sin(a1)*rad);
+  const tang=V(-Math.sin(a1),0,Math.cos(a1)).multiplyScalar(Math.sign(sweep)).normalize();
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(tubeR*2.6,tubeR*7,14),mat);
+  cone.position.copy(end); cone.quaternion.setFromUnitVectors(YAXIS,tang);
+  g.add(cone); return g;
+}
 function buildHA(){
-  clearGroup(haGrp); haMid={a:null,t:null,s:null};
+  disposeGroup(haGrp); haMid={a:null,t:null,s:null};
   if(!active.has('hourangle'))return;
   const sr=sky.rotation.y;
   const dec=Math.asin(Math.max(-1,Math.min(1,starDir.y)));
@@ -416,20 +427,20 @@ function buildHA(){
   let tRad=Math.atan2(dirH.z,dirH.x); if(tRad<0)tRad+=Math.PI*2;   // t (часовой угол, к западу от меридиана)
   const sRad=(aRad+tRad)%(Math.PI*2);                              // s = α + t
   const angG=-sr, angF=angG-aRad;                                  // γ и часовой круг звезды на экваторе
-  // α — дуга по экватору от γ до часового круга звезды
-  haGrp.add(arcByAngle(V(0,0,0),R,angG,-aRad,C.equator,0.95));
-  haMid.a=midAng(V(0,0,0),R*1.05,angG,-aRad);
+  // α — стрелка по экватору от γ до часового круга звезды
+  haGrp.add(arcArrow(V(0,0,0),R,angG,-aRad,C.equator,0.05));
+  haMid.a=midAng(V(0,0,0),R*1.08,angG,-aRad);
   // t — продолжение по экватору от часового круга до меридиана (мала у меридиана)
-  haGrp.add(arcByAngle(V(0,0,0),R,angF,-tRad,C.horizon,0.95));
-  haMid.t=midAng(V(0,0,0),R*1.05,angF,-tRad);
+  haGrp.add(arcArrow(V(0,0,0),R,angF,-tRad,C.horizon,0.05));
+  haMid.t=midAng(V(0,0,0),R*1.08,angF,-tRad);
   // связка часового круга со звездой (по кругу склонения)
   const Fdir=V(Math.cos(angF),0,Math.sin(angF)), pts=[];
   for(let i=0;i<=24;i++){const d=dec*i/24;
     pts.push(Fdir.clone().multiplyScalar(Math.cos(d)*R).add(V(0,Math.sin(d)*R,0)));}
-  haGrp.add(line(pts,C.star,0.35));
-  // s = α + t : тонкая дуга-«скоба» снаружи от γ до меридиана
-  haGrp.add(arcByAngle(V(0,0,0),R*1.1,angG,-sRad,0xd8dbe6,0.55));
-  haMid.s=midAng(V(0,0,0),R*1.16,angG,-sRad);
+  haGrp.add(line(pts,C.star,0.4));
+  // s = α + t : стрелка снаружи от γ до меридиана
+  haGrp.add(arcArrow(V(0,0,0),R*1.12,angG,-sRad,0xd8dbe6,0.034));
+  haMid.s=midAng(V(0,0,0),R*1.2,angG,-sRad);
 }
 
 function coordsIn(fr,dir){
@@ -495,9 +506,9 @@ addLabel('☉ восход',()=>sunRise?sunRise.clone().multiplyScalar(R*1.07):n
 addLabel('☉ заход', ()=>sunSet ?sunSet.clone().multiplyScalar(R*1.07):null,'#ffd9a8','ground',()=>active.has('sun')&&active.has('horizon')&&!!sunSet,'tick');
 addLabel('меридиан',()=>V(Math.cos(72*D2R),Math.sin(72*D2R),0).multiplyScalar(R*1.04),'#cfd6e6','ground',()=>active.has('horizon'),'tick');
 // дуги звёздного времени
-addLabel('α',()=>haMid.a,'#7ec0ff','world',()=>active.has('hourangle')&&!!haMid.a,'name');
-addLabel('t',()=>haMid.t,'#ffc08a','world',()=>active.has('hourangle')&&!!haMid.t,'name');
-addLabel('s',()=>haMid.s,'#e2e6f0','world',()=>active.has('hourangle')&&!!haMid.s,'name');
+addLabel('α',()=>haMid.a,'#7ec0ff','world',()=>active.has('hourangle')&&!!haMid.a,'arc');
+addLabel('t',()=>haMid.t,'#ffc08a','world',()=>active.has('hourangle')&&!!haMid.t,'arc');
+addLabel('s',()=>haMid.s,'#e2e6f0','world',()=>active.has('hourangle')&&!!haMid.s,'arc');
 const _v=new THREE.Vector3();
 function spaceMat(sp){return (sp==='ground'?ground:sp==='world'?world:sky).matrixWorld;}
 function updateLabels(){
