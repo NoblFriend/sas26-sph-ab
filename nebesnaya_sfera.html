@@ -8,8 +8,8 @@
   :root{
     --bg:#070912; --panel:rgba(14,18,32,0.82); --line:rgba(255,255,255,0.10);
     --ink:#e8ecf6; --muted:#8b93ad; --accent:#9bb4ff;
-    --horizon:#ff9e4a; --equator:#4ea3ff; --ecliptic:#ffd24a;
-    --galactic:#c77dff; --supergalactic:#5fe0a0; --star:#fff4c2;
+    --horizon:#ff9e4a; --equator:#4ea3ff; --ecliptic:#45d6a0;
+    --galactic:#c77dff; --supergalactic:#ff7eb6; --star:#fff4c2; --sun:#ffd24a;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
@@ -135,10 +135,14 @@
       <button data-mode="us">Мы</button>
       <button data-mode="stop">Стоп</button>
     </div>
-    <div class="ctl" style="margin-bottom:6px"><span>Скорость</span>
+    <div class="ctl" style="margin-bottom:8px"><span>Скорость</span>
       <span style="display:flex;align-items:center;gap:10px">
         <input id="spd" type="range" min="0" max="100" value="40" step="1">
       </span></div>
+    <div class="ctl"><span>Звёздное время&nbsp;s</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <input id="sid" type="range" min="0" max="24" value="0" step="0.02">
+        <span class="val" id="sidv">0ʰ00ᵐ</span></span></div>
   </div>
 
   <div class="group">
@@ -154,7 +158,7 @@
     <div class="hd">Солнце и время</div>
     <label class="sys" data-sys="sun" id="sunToggle">
       <input type="checkbox">
-      <span class="swatch" style="background:var(--ecliptic);color:var(--ecliptic)"></span>
+      <span class="swatch" style="background:var(--sun);color:var(--sun)"></span>
       <span class="nm">Показать Солнце</span>
     </label>
     <div class="ctl"><span>Дата</span>
@@ -203,7 +207,7 @@
 </div>
 
 <div id="scope">
-  <div class="scope-hd"><span>Проекция неба · ортографическая, взгляд из точки:</span><span class="live">● прямой эфир</span></div>
+  <div class="scope-hd"><span>Проекция неба · ортографическая, взгляд из точки:</span></div>
   <div class="seg sm" id="projSeg">
     <button data-c="zenith" class="on">зенит</button>
     <button data-c="pole">полюс мира</button>
@@ -222,7 +226,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const D2R=Math.PI/180, R2D=180/Math.PI, R=5;
-const C={horizon:0xff9e4a,equator:0x4ea3ff,ecliptic:0xffd24a,galactic:0xc77dff,supergalactic:0x5fe0a0,star:0xfff4c2};
+const C={horizon:0xff9e4a,equator:0x4ea3ff,ecliptic:0x45d6a0,galactic:0xc77dff,supergalactic:0xff7eb6,star:0xfff4c2,sun:0xffd24a};
 const YAXIS=new THREE.Vector3(0,1,0);
 
 const scene=new THREE.Scene();
@@ -302,7 +306,7 @@ function rebuild(){
 }
 
 // star (in sky)
-let starDir=V(0.45,0.55,0.7).normalize();
+let starDir=eqVec(45,45);
 const star=new THREE.Mesh(new THREE.SphereGeometry(0.13,20,20),new THREE.MeshBasicMaterial({color:C.star}));
 star.add(new THREE.Mesh(new THREE.SphereGeometry(0.26,20,20),new THREE.MeshBasicMaterial({color:C.star,transparent:true,opacity:0.25})));
 sky.add(star);
@@ -405,26 +409,27 @@ function midAng(center,rad,a0,sweep){const t=a0+sweep/2;
 function buildHA(){
   clearGroup(haGrp); haMid={a:null,t:null,s:null};
   if(!active.has('hourangle'))return;
-  const sr=sky.rotation.y, gr=ground.rotation.y;
+  const sr=sky.rotation.y;
   const dec=Math.asin(Math.max(-1,Math.min(1,starDir.y)));
-  const aRad=coordsIn(FR.equator,starDir).lon*D2R;                 // α
+  const aRad=coordsIn(FR.equator,starDir).lon*D2R;                 // α (прямое восхождение)
   const dirH=starDir.clone().applyAxisAngle(YAXIS,-dayAngle);
-  let tRad=Math.atan2(dirH.z,dirH.x); if(tRad<0)tRad+=Math.PI*2;   // t (часовой угол, к западу)
+  let tRad=Math.atan2(dirH.z,dirH.x); if(tRad<0)tRad+=Math.PI*2;   // t (часовой угол, к западу от меридиана)
   const sRad=(aRad+tRad)%(Math.PI*2);                              // s = α + t
-  const angG=-sr, angPM=-gr;
-  // α — на экваторе от γ (к востоку, −α)
+  const angG=-sr, angF=angG-aRad;                                  // γ и часовой круг звезды на экваторе
+  // α — дуга по экватору от γ до часового круга звезды
   haGrp.add(arcByAngle(V(0,0,0),R,angG,-aRad,C.equator,0.95));
-  haMid.a=midAng(V(0,0,0),R*1.07,angG,-aRad);
-  // t — вдоль суточной параллели звезды, от меридиана к звезде (к западу, +t)
-  const cen=V(0,Math.sin(dec)*R,0), prad=Math.cos(dec)*R;
-  haGrp.add(arcByAngle(cen,prad,angPM,tRad,C.horizon,0.95));
-  haMid.t=midAng(cen,prad,angPM,tRad);
-  // s — на экваторе, внешняя дуга от γ до меридиана (−s)
-  haGrp.add(arcByAngle(V(0,0,0),R*1.13,angG,-sRad,0x5fe0a0,0.85));
-  haMid.s=midAng(V(0,0,0),R*1.2,angG,-sRad);
-  // спицы, ограничивающие угол s
-  haGrp.add(line([V(0,0,0),V(Math.cos(angG)*R,0,Math.sin(angG)*R)],0x5fe0a0,0.22));
-  haGrp.add(line([V(0,0,0),V(Math.cos(angG-sRad)*R,0,Math.sin(angG-sRad)*R)],0x5fe0a0,0.22));
+  haMid.a=midAng(V(0,0,0),R*1.05,angG,-aRad);
+  // t — продолжение по экватору от часового круга до меридиана (мала у меридиана)
+  haGrp.add(arcByAngle(V(0,0,0),R,angF,-tRad,C.horizon,0.95));
+  haMid.t=midAng(V(0,0,0),R*1.05,angF,-tRad);
+  // связка часового круга со звездой (по кругу склонения)
+  const Fdir=V(Math.cos(angF),0,Math.sin(angF)), pts=[];
+  for(let i=0;i<=24;i++){const d=dec*i/24;
+    pts.push(Fdir.clone().multiplyScalar(Math.cos(d)*R).add(V(0,Math.sin(d)*R,0)));}
+  haGrp.add(line(pts,C.star,0.35));
+  // s = α + t : тонкая дуга-«скоба» снаружи от γ до меридиана
+  haGrp.add(arcByAngle(V(0,0,0),R*1.1,angG,-sRad,0xd8dbe6,0.55));
+  haMid.s=midAng(V(0,0,0),R*1.16,angG,-sRad);
 }
 
 function coordsIn(fr,dir){
@@ -475,7 +480,7 @@ addLabel('★',()=>starDir.clone().multiplyScalar(R*1.06),'#fff4c2','sky',()=>tr
 
 // подписи самих кругов + градуировка главного круга каждой системы
 const CIRC={equator:['небесный экватор','#bcd6ff'],horizon:['горизонт','#ffd9a8'],
-  ecliptic:['эклиптика','#ffe9a8'],galactic:['галакт. экватор','#e3c4ff'],supergalactic:['сверхгал. экватор','#bff3d6']};
+  ecliptic:['эклиптика','#8ef0c4'],galactic:['галакт. экватор','#e3c4ff'],supergalactic:['сверхгал. экватор','#ffc2dd']};
 function onCirc(s,angDeg,scale){return ()=>{const fr=FR[s],a=angDeg*D2R;
   return fr.u.clone().multiplyScalar(Math.cos(a)).addScaledVector(fr.v,Math.sin(a)).multiplyScalar(R*scale);};}
 sysList.forEach(s=>{const[txt,col]=CIRC[s];const space=s==='horizon'?'ground':'sky';
@@ -492,7 +497,7 @@ addLabel('меридиан',()=>V(Math.cos(72*D2R),Math.sin(72*D2R),0).multiplyS
 // дуги звёздного времени
 addLabel('α',()=>haMid.a,'#7ec0ff','world',()=>active.has('hourangle')&&!!haMid.a,'name');
 addLabel('t',()=>haMid.t,'#ffc08a','world',()=>active.has('hourangle')&&!!haMid.t,'name');
-addLabel('s',()=>haMid.s,'#7df0bd','world',()=>active.has('hourangle')&&!!haMid.s,'name');
+addLabel('s',()=>haMid.s,'#e2e6f0','world',()=>active.has('hourangle')&&!!haMid.s,'name');
 const _v=new THREE.Vector3();
 function spaceMat(sp){return (sp==='ground'?ground:sp==='world'?world:sky).matrixWorld;}
 function updateLabels(){
@@ -548,6 +553,9 @@ document.querySelectorAll('#seg button').forEach(b=>{
 const latEl=document.getElementById('lat'),latv=document.getElementById('latv');
 latEl.addEventListener('input',()=>{const v=parseInt(latEl.value);latv.textContent=(v>=0?'+':'−')+Math.abs(v)+'°';rebuild();updateCoords();});
 document.getElementById('spd').addEventListener('input',e=>{speed=parseInt(e.target.value);});
+const sidEl=document.getElementById('sid'), sidv=document.getElementById('sidv');
+function setMode(md){mode=md;document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===md));}
+sidEl.addEventListener('input',()=>{dayAngle=parseFloat(sidEl.value)/24*Math.PI*2;setMode('stop');updateCoords();});
 const doyEl=document.getElementById('doy');
 doyEl.addEventListener('input',()=>{doy=parseInt(doyEl.value);document.getElementById('doyv').textContent=monthDay(doy);updateSun();updateCoords();});
 document.getElementById('sunToggle').addEventListener('click',()=>{updateSun();updateCoords();});
@@ -607,9 +615,9 @@ function drawDome(){
   // горизонт (всегда) и системы координат
   polyline(dctx,projCircle(FR.horizon,false,200),'#ff9e4a',1.5,.9);
   if(active.has('equator'))polyline(dctx,projCircle(FR.equator,true,200),'#4ea3ff',1.4,.85);
-  if(active.has('ecliptic'))polyline(dctx,projCircle(FR.ecliptic,true,200),'#ffd24a',1.3,.8);
+  if(active.has('ecliptic'))polyline(dctx,projCircle(FR.ecliptic,true,200),'#45d6a0',1.3,.85);
   if(active.has('galactic'))polyline(dctx,projCircle(FR.galactic,true,200),'#c77dff',1.2,.6);
-  if(active.has('supergalactic'))polyline(dctx,projCircle(FR.supergalactic,true,200),'#5fe0a0',1.2,.6);
+  if(active.has('supergalactic'))polyline(dctx,projCircle(FR.supergalactic,true,200),'#ff7eb6',1.2,.6);
   // суточная параллель звезды
   polyline(dctx,projPar(Math.asin(clamp(starDir.y)),200),'#fff4c2',1,.45);
   // Солнце
@@ -672,6 +680,7 @@ let lastCoordTick=0;
 function animate(t){
   requestAnimationFrame(animate);
   if(mode!=='stop')dayAngle+=0.00004*speed;
+  {const sH=(((dayAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2))/(Math.PI*2)*24; sidEl.value=sH; sidv.textContent=hms(sH*15);}
   sky.setRotationFromAxisAngle(YAXIS, mode==='sky'?-dayAngle:0);   // звёзды восходят на востоке, заходят на западе
   ground.setRotationFromAxisAngle(YAXIS, mode==='us'?dayAngle:0);
   world.rotation.set(viewX,viewY,0);
