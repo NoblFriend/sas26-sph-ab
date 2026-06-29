@@ -17,8 +17,11 @@
   #scene{position:fixed;inset:0}
   #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
   .lbl{position:absolute;transform:translate(-50%,-50%);
-    font:600 12px/1.1 'Inter',sans-serif;letter-spacing:.02em;
+    font:600 13.5px/1.1 'Inter',sans-serif;letter-spacing:.02em;
     white-space:nowrap;text-shadow:0 0 6px #000,0 0 6px #000;pointer-events:none}
+  .lbl.tick{font:500 10.5px/1 'Inter',sans-serif;opacity:.82;
+    text-shadow:0 0 5px #000,0 0 5px #000}
+  .lbl.name{font:700 12.5px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase}
 
   #panel{position:fixed;top:16px;left:16px;width:316px;max-height:calc(100% - 32px);
     overflow:auto;background:var(--panel);backdrop-filter:blur(14px);
@@ -36,8 +39,8 @@
   .swatch{width:13px;height:13px;border-radius:4px;margin-top:2px;flex:0 0 auto;
     box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;opacity:.35;transition:opacity .15s}
   .sys.on .swatch{opacity:1;box-shadow:0 0 9px currentColor}
-  .sys .nm{font-size:13px;font-weight:600;line-height:1.25}
-  .sys .rc{font-size:10.5px;color:var(--muted);line-height:1.3;margin-top:2px}
+  .sys .nm{display:block;font-size:13px;font-weight:600;line-height:1.25}
+  .sys .rc{display:block;font-size:10.5px;color:var(--muted);line-height:1.3;margin-top:2px}
   .sys.on .nm{color:#fff}
 
   .ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -56,6 +59,8 @@
     padding:7px 0;font:600 12.5px/1 'Inter',sans-serif;cursor:pointer;transition:.15s}
   .seg button.on{background:var(--accent);color:#0a0d16}
   .seg-cap{font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .note{font-size:10px;color:var(--muted);line-height:1.45;margin-top:7px}
+  .note b{color:var(--ink);font-weight:600}
   .btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);
     border-radius:9px;padding:6px 11px;font-size:12px;cursor:pointer;transition:background .15s;width:100%}
   .btn:hover{background:rgba(255,255,255,.12)}
@@ -71,6 +76,18 @@
   .hint b{color:var(--ink);font-weight:600}
   ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
   @media (max-width:560px){#panel{width:calc(100% - 24px);left:12px;top:12px}}
+
+  #scope{position:fixed;right:16px;bottom:16px;width:430px;max-width:calc(100% - 32px);
+    background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--line);
+    border-radius:16px;padding:14px 14px 15px;z-index:4}
+  .scope-hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);margin:0 2px 9px;display:flex;justify-content:space-between;align-items:center}
+  .scope-hd .live{color:var(--supergalactic);font-size:9px;letter-spacing:.1em}
+  .seg.sm{padding:3px;margin-bottom:8px}
+  .seg.sm button{padding:5px 0;font-size:11px}
+  #scope canvas{display:block;width:100%;border-radius:10px;background:rgba(0,0,0,.28)}
+  #dome{margin-bottom:9px}
+  @media (max-width:760px){#scope{display:none}}
 </style>
 </head>
 <body>
@@ -86,33 +103,33 @@
     <label class="sys on" data-sys="equator">
       <input type="checkbox" checked>
       <span class="swatch" style="background:var(--equator);color:var(--equator)"></span>
-      <span><span class="nm">Экваториальная</span></span>
+      <span><span class="nm">Экваториальная</span><span class="rc">экватор мира · γ (α, δ)</span></span>
     </label>
     <label class="sys on" data-sys="horizon">
       <input type="checkbox" checked>
       <span class="swatch" style="background:var(--horizon);color:var(--horizon)"></span>
-      <span><span class="nm">Горизонтальная</span></span>
+      <span><span class="nm">Горизонтальная</span><span class="rc">горизонт · точка юга (A, h)</span></span>
     </label>
     <label class="sys" data-sys="ecliptic">
       <input type="checkbox">
       <span class="swatch" style="background:var(--ecliptic);color:var(--ecliptic)"></span>
-      <span><span class="nm">Эклиптическая</span></span>
+      <span><span class="nm">Эклиптическая</span><span class="rc">эклиптика · γ (λ, β)</span></span>
     </label>
     <label class="sys" data-sys="galactic">
       <input type="checkbox">
       <span class="swatch" style="background:var(--galactic);color:var(--galactic)"></span>
-      <span><span class="nm">Галактическая</span></span>
+      <span><span class="nm">Галактическая</span><span class="rc">плоскость Галактики · её центр</span></span>
     </label>
     <label class="sys" data-sys="supergalactic">
       <input type="checkbox">
       <span class="swatch" style="background:var(--supergalactic);color:var(--supergalactic)"></span>
-      <span><span class="nm">Супергалактическая</span></span>
+      <span><span class="nm">Супергалактическая</span><span class="rc">плоскость местных сверхскоплений</span></span>
     </label>
   </div>
 
   <div class="group">
     <div class="hd">Суточное вращение</div>
-    <div class="seg-cap">Что вращается на самом деле — одно и то же относительное движение, но что считать неподвижным:</div>
+    <div class="seg-cap">Движение одно и то же — выбери, что считать неподвижным:</div>
     <div class="seg" id="seg">
       <button data-mode="sky" class="on">Небо</button>
       <button data-mode="us">Мы</button>
@@ -133,17 +150,73 @@
     <button class="btn" id="reset">Сбросить вид</button>
   </div>
 
+  <div class="group">
+    <div class="hd">Солнце и время</div>
+    <label class="sys" data-sys="sun" id="sunToggle">
+      <input type="checkbox">
+      <span class="swatch" style="background:var(--ecliptic);color:var(--ecliptic)"></span>
+      <span class="nm">Показать Солнце</span>
+    </label>
+    <div class="ctl"><span>Дата</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <input id="doy" type="range" min="1" max="365" value="180" step="1">
+        <span class="val" id="doyv">29 июн</span></span></div>
+    <div class="note">Положение приближённое: это <b>среднее Солнце</b>. Настоящее идёт по эклиптике неравномерно (эксцентриситет орбиты + наклон оси — отсюда уравнение времени, до ±16 мин).</div>
+  </div>
+
+  <div class="group">
+    <div class="hd">Наглядность</div>
+    <label class="sys" data-sys="earth">
+      <input type="checkbox">
+      <span class="swatch" style="background:#5a7cff;color:#5a7cff"></span>
+      <span class="nm">Земля и плоскость экватора</span>
+    </label>
+    <label class="sys" data-sys="hourangle">
+      <input type="checkbox">
+      <span class="swatch" style="background:#fff;color:#fff"></span>
+      <span><span class="nm">Дуги&nbsp; t + α = s</span><span class="rc">часовой угол + прям. восхождение = звёздное время</span></span>
+    </label>
+  </div>
+
   <div id="coords">
     <div class="hd" style="margin-bottom:9px">Координаты звезды</div>
     <div class="crow ce"><span class="k">экв.&nbsp;&nbsp;α / δ</span><span class="v" id="eq">—</span></div>
     <div class="crow cc"><span class="k">экл.&nbsp;&nbsp;λ / β</span><span class="v" id="ec">—</span></div>
     <div class="crow ch"><span class="k">гор.&nbsp;&nbsp;A / h</span><span class="v" id="hz">—</span></div>
+    <div class="crow"><span class="k">часовой&nbsp;угол&nbsp;t</span><span class="v" id="ha">—</span></div>
+    <div class="crow"><span class="k">звёздное&nbsp;время&nbsp;s</span><span class="v" id="lst">—</span></div>
+    <div id="sunrow" style="display:none;border-top:1px solid var(--line);margin-top:8px;padding-top:8px">
+      <div class="crow cc"><span class="k">☉&nbsp;экв.&nbsp;α / δ</span><span class="v" id="sq">—</span></div>
+      <div class="crow ch"><span class="k">☉&nbsp;гор.&nbsp;A / h</span><span class="v" id="sh">—</span></div>
+      <div class="crow"><span class="k">☉&nbsp;режим</span><span class="v" id="sevent">—</span></div>
+    </div>
   </div>
 
   <div class="hint">
-    Переключи <b>«Мы»</b> и <b>«Небо»</b>: относительное движение одинаково, меняется лишь точка зрения. Гор. координаты звезды (A/h) при этом «плывут» — звезда восходит и заходит, а экв. (α/δ) стоят на месте.<br>
-    <b>Звезду</b> можно перетащить, пустое поле — вращать вид, колесо — зум.
+    <b>«Небо» / «Мы».</b> Движение то же — меняется лишь, что считать неподвижным. Гор. координаты A/h «плывут», звезда восходит и заходит; экв. α/δ стоят на месте.<br>
+    <b>Суточный ход.</b> Звезда катится по своей параллели и пересекает горизонт в точках восхода и захода; в кульминации она на меридиане — часовой угол t = 0.<br>
+    <b>Солнце.</b> Меняй дату — видно смену точки восхода, высоту по сезонам, полярный день и ночь.<br>
+    <b>Звёздное время.</b> Дуги <span style="color:#7df0bd">t + α = s</span>: часовой угол (от меридиана) плюс прямое восхождение (от γ) всегда дают звёздное время.<br>
+    <b>Окно справа.</b> Ортографическая проекция неба из выбранной точки + график высоты/азимута за сутки с живым курсором.<br>
+    <b>Управление.</b> Звезду тащи мышью; пустое поле — поворот вида; колесо — зум.
   </div>
+</div>
+
+<div id="scope">
+  <div class="scope-hd"><span>Проекция неба · ортографическая, взгляд из точки:</span><span class="live">● прямой эфир</span></div>
+  <div class="seg sm" id="projSeg">
+    <button data-c="zenith" class="on">зенит</button>
+    <button data-c="pole">полюс мира</button>
+    <button data-c="south">юг</button>
+    <button data-c="east">восток</button>
+  </div>
+  <canvas id="dome" width="402" height="300"></canvas>
+  <div class="seg sm" id="qtySeg">
+    <button data-q="h" class="on">h звезды</button>
+    <button data-q="A">A звезды</button>
+    <button data-q="sun">h Солнца</button>
+  </div>
+  <canvas id="graph" width="402" height="150"></canvas>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -175,7 +248,7 @@ world.add(new THREE.Mesh(new THREE.SphereGeometry(R,40,28),
   for(let i=0;i<N;i++){const u=Math.random()*2-1,t=Math.random()*Math.PI*2,r=R*2.4*(0.85+Math.random()*0.15),s=Math.sqrt(1-u*u);
     p[i*3]=r*s*Math.cos(t);p[i*3+1]=r*u;p[i*3+2]=r*s*Math.sin(t);}
   g.setAttribute('position',new THREE.BufferAttribute(p,3));
-  sky.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.045,transparent:true,opacity:0.55})));
+  sky.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.028,transparent:true,opacity:0.5})));
 })();
 
 function V(x,y,z){return new THREE.Vector3(x,y,z);}
@@ -225,6 +298,7 @@ function rebuild(){
   sysList.forEach(s=>{if(groups[s]){parentOf(s).remove(groups[s]);}});
   FR=frames(parseInt(latEl.value));
   sysList.forEach(s=>{const g=buildSystem(FR[s],C[s]);g.visible=active.has(s);groups[s]=g;parentOf(s).add(g);});
+  updateStarTrack();updateSun();
 }
 
 // star (in sky)
@@ -233,6 +307,125 @@ const star=new THREE.Mesh(new THREE.SphereGeometry(0.13,20,20),new THREE.MeshBas
 star.add(new THREE.Mesh(new THREE.SphereGeometry(0.26,20,20),new THREE.MeshBasicMaterial({color:C.star,transparent:true,opacity:0.25})));
 sky.add(star);
 function placeStar(){star.position.copy(starDir).multiplyScalar(R);}
+
+// ─── Солнце, суточные параллели, восход/заход, меридиан ──────────────
+let doy=180, sunLonDeg=0, sunDir=V(1,0,0);
+let starRise=null, starSet=null, sunRise=null, sunSet=null;
+
+// контейнеры: треки живут в sky (фиксированы относительно экватора),
+// точки восхода/захода и меридиан — в ground (фиксированы для наблюдателя)
+const starTrack=new THREE.Group(); sky.add(starTrack);
+const starMarks=new THREE.Group(); ground.add(starMarks);
+const sunGrp=new THREE.Group();   sky.add(sunGrp);
+const sunTrack=new THREE.Group();  sky.add(sunTrack);
+const sunMarks=new THREE.Group();  ground.add(sunMarks);
+
+const sun=new THREE.Mesh(new THREE.SphereGeometry(0.18,24,24),new THREE.MeshBasicMaterial({color:0xffd24a}));
+sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.40,24,24),new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:0.22})));
+sunGrp.add(sun); sunGrp.visible=false;
+
+// меридиан наблюдателя — большой круг в плоскости z=0 (через зенит, надир, полюса мира)
+ground.add(line(circlePts(V(0,0,0),V(1,0,0),V(0,1,0),R),0xcfd6e6,0.45));
+
+function clearGroup(g){while(g.children.length)g.remove(g.children[0]);}
+function diurnalCircle(decR,color,op){
+  return line(circlePts(V(0,Math.sin(decR)*R,0),V(1,0,0),V(0,0,1),Math.cos(decR)*R),color,op);
+}
+// точки пересечения суточной параллели с горизонтом: [восход(восток,+z), заход(запад,−z)] или null
+function riseSetDirs(decR){
+  const phi=parseInt(latEl.value)*D2R;
+  if(Math.abs(Math.cos(phi))<1e-6)return null;          // на полюсе горизонт = экватор
+  const y=Math.sin(decR), x=-Math.sin(decR)*Math.tan(phi), k=1-x*x-y*y;
+  if(k<=0)return null;                                   // незаходящая / невосходящая
+  const z=Math.sqrt(k);
+  return [V(x,y,z),V(x,y,-z)];
+}
+function marker(color,rad){return new THREE.Mesh(new THREE.SphereGeometry(rad,14,14),new THREE.MeshBasicMaterial({color}));}
+
+function updateStarTrack(){
+  clearGroup(starTrack);clearGroup(starMarks);
+  const dec=Math.asin(Math.max(-1,Math.min(1,starDir.y)));
+  starTrack.add(diurnalCircle(dec,C.star,0.5));
+  const rs=riseSetDirs(dec); starRise=starSet=null;
+  if(rs){starRise=rs[1];starSet=rs[0];   // восток = −z = rs[1]
+    rs.forEach(d=>{const m=marker(C.star,0.07);m.position.copy(d).multiplyScalar(R);starMarks.add(m);});}
+}
+
+const MONTHS=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const MLEN=[31,28,31,30,31,30,31,31,30,31,30,31];
+function monthDay(n){let m=0,d=n;while(d>MLEN[m]){d-=MLEN[m];m++;}return d+' '+MONTHS[m];}
+
+function updateSun(){
+  clearGroup(sunTrack);clearGroup(sunMarks);
+  sunLonDeg=(((doy-79)*360/365.2422)%360+360)%360;     // приближённая долгота среднего Солнца (равноденствие ≈ 20 марта)
+  const lam=sunLonDeg*D2R;
+  sunDir=FR.ecliptic.u.clone().multiplyScalar(Math.cos(lam)).addScaledVector(FR.ecliptic.v,Math.sin(lam));
+  sun.position.copy(sunDir).multiplyScalar(R);
+  const show=active.has('sun');
+  sunGrp.visible=sunTrack.visible=sunMarks.visible=show;
+  document.getElementById('sunrow').style.display=show?'block':'none';
+  sunRise=sunSet=null;
+  if(!show)return;
+  const dec=Math.asin(Math.max(-1,Math.min(1,sunDir.y)));
+  sunTrack.add(diurnalCircle(dec,0xffd24a,0.45));
+  const rs=riseSetDirs(dec);
+  if(rs){sunRise=rs[1];sunSet=rs[0];   // восток = −z = rs[1]
+    rs.forEach(d=>{const m=marker(0xffd24a,0.08);m.position.copy(d).multiplyScalar(R);sunMarks.add(m);});
+    document.getElementById('sevent').textContent='восходит и заходит';
+  }else{
+    const phi=parseInt(latEl.value)*D2R;
+    document.getElementById('sevent').textContent=(Math.abs(phi+dec)*R2D>90)?'полярный день':'полярная ночь';
+  }
+}
+
+// ─── Земля в центре + плоскость экватора + ось мира ──────────────────
+const earthGrp=new THREE.Group(); world.add(earthGrp); earthGrp.visible=false;
+(function(){
+  const er=0.5;
+  earthGrp.add(new THREE.Mesh(new THREE.SphereGeometry(er,32,24),new THREE.MeshBasicMaterial({color:0x24407a})));
+  earthGrp.add(line(circlePts(V(0,0,0),V(1,0,0),V(0,0,1),er*1.002),0x6fa0ff,0.9));     // экватор Земли
+  earthGrp.add(line([V(0,-er*1.7,0),V(0,er*1.7,0)],0x9bb4ff,0.7));                       // ось мира
+  const pl=new THREE.Mesh(new THREE.CircleGeometry(R*0.99,72),
+    new THREE.MeshBasicMaterial({color:0x4ea3ff,transparent:true,opacity:0.06,side:THREE.DoubleSide}));
+  pl.rotation.x=Math.PI/2; earthGrp.add(pl);                                            // плоскость экватора (y=0)
+})();
+
+// ─── дуги t + α = s (звёздное время) ─────────────────────────────────
+const haGrp=new THREE.Group(); world.add(haGrp);
+let haMid={a:null,t:null,s:null};
+const EX=V(1,0,0), EZ=V(0,0,1);
+function arcByAngle(center,rad,a0,sweep,color,op){
+  const seg=Math.max(2,Math.round(Math.abs(sweep)/(Math.PI*2)*180)),pts=[];
+  for(let i=0;i<=seg;i++){const t=a0+sweep*i/seg;
+    pts.push(center.clone().addScaledVector(EX,Math.cos(t)*rad).addScaledVector(EZ,Math.sin(t)*rad));}
+  return line(pts,color,op);
+}
+function midAng(center,rad,a0,sweep){const t=a0+sweep/2;
+  return center.clone().addScaledVector(EX,Math.cos(t)*rad).addScaledVector(EZ,Math.sin(t)*rad);}
+function buildHA(){
+  clearGroup(haGrp); haMid={a:null,t:null,s:null};
+  if(!active.has('hourangle'))return;
+  const sr=sky.rotation.y, gr=ground.rotation.y;
+  const dec=Math.asin(Math.max(-1,Math.min(1,starDir.y)));
+  const aRad=coordsIn(FR.equator,starDir).lon*D2R;                 // α
+  const dirH=starDir.clone().applyAxisAngle(YAXIS,-dayAngle);
+  let tRad=Math.atan2(dirH.z,dirH.x); if(tRad<0)tRad+=Math.PI*2;   // t (часовой угол, к западу)
+  const sRad=(aRad+tRad)%(Math.PI*2);                              // s = α + t
+  const angG=-sr, angPM=-gr;
+  // α — на экваторе от γ (к востоку, −α)
+  haGrp.add(arcByAngle(V(0,0,0),R,angG,-aRad,C.equator,0.95));
+  haMid.a=midAng(V(0,0,0),R*1.07,angG,-aRad);
+  // t — вдоль суточной параллели звезды, от меридиана к звезде (к западу, +t)
+  const cen=V(0,Math.sin(dec)*R,0), prad=Math.cos(dec)*R;
+  haGrp.add(arcByAngle(cen,prad,angPM,tRad,C.horizon,0.95));
+  haMid.t=midAng(cen,prad,angPM,tRad);
+  // s — на экваторе, внешняя дуга от γ до меридиана (−s)
+  haGrp.add(arcByAngle(V(0,0,0),R*1.13,angG,-sRad,0x5fe0a0,0.85));
+  haMid.s=midAng(V(0,0,0),R*1.2,angG,-sRad);
+  // спицы, ограничивающие угол s
+  haGrp.add(line([V(0,0,0),V(Math.cos(angG)*R,0,Math.sin(angG)*R)],0x5fe0a0,0.22));
+  haGrp.add(line([V(0,0,0),V(Math.cos(angG-sRad)*R,0,Math.sin(angG-sRad)*R)],0x5fe0a0,0.22));
+}
 
 function coordsIn(fr,dir){
   const lat=Math.asin(Math.max(-1,Math.min(1,dir.dot(fr.pole))))*R2D;
@@ -244,18 +437,30 @@ function dms(deg){const s=deg<0?'−':'+';deg=Math.abs(deg);const D=Math.floor(d
 function deg(d){return `${d.toFixed(1)}°`;}
 function updateCoords(){
   const e=coordsIn(FR.equator,starDir),c=coordsIn(FR.ecliptic,starDir);
-  const dirH=starDir.clone().applyAxisAngle(YAXIS,dayAngle); // star seen in the (rotated) horizon frame
+  const dirH=starDir.clone().applyAxisAngle(YAXIS,-dayAngle); // star seen in the (rotated) horizon frame
   const h=coordsIn(FR.horizon,dirH);
   document.getElementById('eq').textContent=`${hms(e.lon)}  ${dms(e.lat)}`;
   document.getElementById('ec').textContent=`${deg(c.lon)}  ${dms(c.lat)}`;
   document.getElementById('hz').textContent=`${deg(h.lon)}  ${dms(h.lat)}`;
+  // часовой угол t: 0 на меридиане (m=+x), растёт к западу (+z); звёздное время s = t + α
+  let H=Math.atan2(dirH.z,dirH.x)*R2D; if(H<0)H+=360;
+  let s=((H+e.lon)%360+360)%360;
+  document.getElementById('ha').textContent=hms(H);
+  document.getElementById('lst').textContent=hms(s);
+  if(active.has('sun')){
+    const se=coordsIn(FR.equator,sunDir);
+    const sd=sunDir.clone().applyAxisAngle(YAXIS,-dayAngle);
+    const sh=coordsIn(FR.horizon,sd);
+    document.getElementById('sq').textContent=`${hms(se.lon)}  ${dms(se.lat)}`;
+    document.getElementById('sh').textContent=`${deg(sh.lon)}  ${dms(sh.lat)}`;
+  }
 }
 
 // labels
 const labelLayer=document.getElementById('labels');
 const labels=[];
-function addLabel(text,getPos,color,space,isOn){
-  const el=document.createElement('div');el.className='lbl';el.textContent=text;el.style.color=color;
+function addLabel(text,getPos,color,space,isOn,cls){
+  const el=document.createElement('div');el.className='lbl'+(cls?' '+cls:'');el.textContent=text;el.style.color=color;
   labelLayer.appendChild(el);labels.push({el,getPos,space,isOn});
 }
 addLabel('Зенит',()=>FR.horizon.pole.clone().multiplyScalar(R*1.04),'#ffd9a8','ground',()=>active.has('horizon'));
@@ -263,16 +468,40 @@ addLabel('Надир',()=>FR.horizon.pole.clone().multiplyScalar(-R*1.04),'#ffd9
 addLabel('точка юга',()=>FR.horizon.u.clone().multiplyScalar(R*1.04),'#ffd9a8','ground',()=>active.has('horizon'));
 addLabel('Сев. полюс мира',()=>FR.equator.pole.clone().multiplyScalar(R*1.05),'#bcd6ff','sky',()=>active.has('equator'));
 addLabel('Юж. полюс мира',()=>FR.equator.pole.clone().multiplyScalar(-R*1.05),'#bcd6ff','sky',()=>active.has('equator'));
-addLabel('♈ точка весны',()=>FR.equator.u.clone().multiplyScalar(R*1.04),'#ffe9a8','sky',()=>active.has('equator')||active.has('ecliptic'));
+addLabel('γ · В р/д',()=>FR.equator.u.clone().multiplyScalar(R*1.04),'#ffe9a8','sky',()=>active.has('equator')||active.has('ecliptic'));
+addLabel('♎︎ · О р/д',()=>FR.equator.u.clone().multiplyScalar(-R*1.04),'#ffe9a8','sky',()=>active.has('equator')||active.has('ecliptic'));
 addLabel('центр Галактики',()=>FR.galactic.u.clone().multiplyScalar(R*1.04),'#e3c4ff','sky',()=>active.has('galactic'));
 addLabel('★',()=>starDir.clone().multiplyScalar(R*1.06),'#fff4c2','sky',()=>true);
+
+// подписи самих кругов + градуировка главного круга каждой системы
+const CIRC={equator:['небесный экватор','#bcd6ff'],horizon:['горизонт','#ffd9a8'],
+  ecliptic:['эклиптика','#ffe9a8'],galactic:['галакт. экватор','#e3c4ff'],supergalactic:['сверхгал. экватор','#bff3d6']};
+function onCirc(s,angDeg,scale){return ()=>{const fr=FR[s],a=angDeg*D2R;
+  return fr.u.clone().multiplyScalar(Math.cos(a)).addScaledVector(fr.v,Math.sin(a)).multiplyScalar(R*scale);};}
+sysList.forEach(s=>{const[txt,col]=CIRC[s];const space=s==='horizon'?'ground':'sky';
+  addLabel(txt,onCirc(s,108,1.03),col,space,()=>active.has(s),'name');
+  for(let k=0;k<6;k++){const a=k*60;const t=s==='equator'?`${k*4}ʰ`:`${k*60}°`;
+    addLabel(t,onCirc(s,a,1.015),col,space,()=>active.has(s),'tick');}
+});
+// восход / заход звезды и Солнца (на горизонте)
+addLabel('восход',()=>starRise?starRise.clone().multiplyScalar(R*1.07):null,'#fff4c2','ground',()=>active.has('horizon')&&!!starRise,'tick');
+addLabel('заход', ()=>starSet ?starSet.clone().multiplyScalar(R*1.07):null,'#fff4c2','ground',()=>active.has('horizon')&&!!starSet,'tick');
+addLabel('☉ восход',()=>sunRise?sunRise.clone().multiplyScalar(R*1.07):null,'#ffd9a8','ground',()=>active.has('sun')&&active.has('horizon')&&!!sunRise,'tick');
+addLabel('☉ заход', ()=>sunSet ?sunSet.clone().multiplyScalar(R*1.07):null,'#ffd9a8','ground',()=>active.has('sun')&&active.has('horizon')&&!!sunSet,'tick');
+addLabel('меридиан',()=>V(Math.cos(72*D2R),Math.sin(72*D2R),0).multiplyScalar(R*1.04),'#cfd6e6','ground',()=>active.has('horizon'),'tick');
+// дуги звёздного времени
+addLabel('α',()=>haMid.a,'#7ec0ff','world',()=>active.has('hourangle')&&!!haMid.a,'name');
+addLabel('t',()=>haMid.t,'#ffc08a','world',()=>active.has('hourangle')&&!!haMid.t,'name');
+addLabel('s',()=>haMid.s,'#7df0bd','world',()=>active.has('hourangle')&&!!haMid.s,'name');
 const _v=new THREE.Vector3();
+function spaceMat(sp){return (sp==='ground'?ground:sp==='world'?world:sky).matrixWorld;}
 function updateLabels(){
   const camDir=camera.position.clone().normalize();
   labels.forEach(L=>{
     if(!L.isOn()){L.el.style.display='none';return;}
-    const m=(L.space==='ground'?ground:sky).matrixWorld;
-    const wp=L.getPos().applyMatrix4(m);
+    const m=spaceMat(L.space);
+    const lp=L.getPos();if(!lp){L.el.style.display='none';return;}
+    const wp=lp.applyMatrix4(m);
     if(wp.clone().normalize().dot(camDir)<-0.15){L.el.style.display='none';return;}
     _v.copy(wp).project(camera);
     if(_v.z>1){L.el.style.display='none';return;}
@@ -302,7 +531,7 @@ cv.addEventListener('pointermove',e=>{
     viewX=Math.max(-1.45,Math.min(1.45,viewX));last={x:e.clientX,y:e.clientY};}
   else{setNDC(e);rayc.setFromCamera(ndc,camera);
     const sphere=new THREE.Sphere(V(0,0,0),R);const pt=new THREE.Vector3();
-    if(rayc.ray.intersectSphere(sphere,pt)){starDir.copy(sky.worldToLocal(pt.clone()).normalize());placeStar();updateCoords();}}
+    if(rayc.ray.intersectSphere(sphere,pt)){starDir.copy(sky.worldToLocal(pt.clone()).normalize());placeStar();updateStarTrack();updateCoords();}}
 });
 cv.addEventListener('pointerup',e=>{dragging=null;cv.releasePointerCapture(e.pointerId);});
 cv.addEventListener('wheel',e=>{e.preventDefault();camera.fov=Math.max(22,Math.min(70,camera.fov+e.deltaY*0.03));camera.updateProjectionMatrix();},{passive:false});
@@ -319,21 +548,139 @@ document.querySelectorAll('#seg button').forEach(b=>{
 const latEl=document.getElementById('lat'),latv=document.getElementById('latv');
 latEl.addEventListener('input',()=>{const v=parseInt(latEl.value);latv.textContent=(v>=0?'+':'−')+Math.abs(v)+'°';rebuild();updateCoords();});
 document.getElementById('spd').addEventListener('input',e=>{speed=parseInt(e.target.value);});
+const doyEl=document.getElementById('doy');
+doyEl.addEventListener('input',()=>{doy=parseInt(doyEl.value);document.getElementById('doyv').textContent=monthDay(doy);updateSun();updateCoords();});
+document.getElementById('sunToggle').addEventListener('click',()=>{updateSun();updateCoords();});
 document.getElementById('reset').addEventListener('click',()=>{viewX=0.35;viewY=0.6;camera.fov=45;camera.updateProjectionMatrix();});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 rebuild();placeStar();updateCoords();
 
+// ─── окно «прямой эфир»: 2D-проекция неба + график координаты от времени ──
+let projCenter='zenith', gQty='h';
+const clamp=x=>Math.max(-1,Math.min(1,x));
+const domeCv=document.getElementById('dome'), gCv=document.getElementById('graph');
+const dctx=domeCv.getContext('2d'), gctx=gCv.getContext('2d');
+function fitCanvas(cv,ctx){const dpr=Math.min(devicePixelRatio,2);const w=cv.clientWidth||cv.width,h=parseInt(cv.getAttribute('height'));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);return{w,h};}
+let DOME=fitCanvas(domeCv,dctx), GRAPH=fitCanvas(gCv,gctx);
+addEventListener('resize',()=>{DOME=fitCanvas(domeCv,dctx);GRAPH=fitCanvas(gCv,gctx);});
+document.querySelectorAll('#projSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#projSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');projCenter=b.dataset.c;}));
+document.querySelectorAll('#qtySeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#qtySeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');gQty=b.dataset.q;}));
+
+function polyline(ctx,pts,color,w,op){ctx.strokeStyle=color;ctx.globalAlpha=op;ctx.lineWidth=w;
+  ctx.beginPath();let pen=false;pts.forEach(p=>{if(!p){pen=false;return;}if(pen)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);pen=true;});
+  ctx.stroke();ctx.globalAlpha=1;}
+
+// ортографическая проекция из выбранной точки (c — куда смотрим/из чего проецируем)
+function orthoBasis(){
+  let c,up;
+  if(projCenter==='pole'){c=FR.equator.pole.clone(); up=FR.horizon.pole.clone();}
+  else if(projCenter==='south'){c=FR.horizon.u.clone(); up=FR.horizon.pole.clone();}
+  else if(projCenter==='east'){c=FR.horizon.v.clone(); up=FR.horizon.pole.clone();}
+  else {c=FR.horizon.pole.clone(); up=FR.horizon.u.clone().multiplyScalar(-1);} // зенит, верх = север
+  up.addScaledVector(c,-up.dot(c)).normalize();
+  const right=new THREE.Vector3().crossVectors(up,c).normalize();
+  return {c,right,up};
+}
+let BASIS=null,GEO=null;
+function P(d){ // d — единичное направление → {x,y} или null (задняя полусфера)
+  if(d.dot(BASIS.c)<=0.0001)return null;
+  return {x:GEO.cx+d.dot(BASIS.right)*GEO.Rpx, y:GEO.cy-d.dot(BASIS.up)*GEO.Rpx};
+}
+function projCircle(fr,inSky,n){const a=[];for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;
+  let d=fr.u.clone().multiplyScalar(Math.cos(t)).addScaledVector(fr.v,Math.sin(t));
+  if(inSky)d.applyAxisAngle(YAXIS,-dayAngle);
+  a.push(P(d));}return a;}
+function projPar(dec,n){const a=[];for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;
+  a.push(P(V(Math.cos(dec)*Math.cos(t),Math.sin(dec),Math.cos(dec)*Math.sin(t))));}return a;}
+
+function drawDome(){
+  const{w,h}=DOME,cx=w/2,cy=h/2,Rpx=Math.min(w,h)/2-16;
+  GEO={cx,cy,Rpx}; BASIS=orthoBasis();
+  dctx.clearRect(0,0,w,h);
+  // контур сферы
+  dctx.strokeStyle='rgba(255,255,255,.14)';dctx.lineWidth=1;
+  dctx.beginPath();dctx.arc(cx,cy,Rpx,0,Math.PI*2);dctx.stroke();
+  // горизонт (всегда) и системы координат
+  polyline(dctx,projCircle(FR.horizon,false,200),'#ff9e4a',1.5,.9);
+  if(active.has('equator'))polyline(dctx,projCircle(FR.equator,true,200),'#4ea3ff',1.4,.85);
+  if(active.has('ecliptic'))polyline(dctx,projCircle(FR.ecliptic,true,200),'#ffd24a',1.3,.8);
+  if(active.has('galactic'))polyline(dctx,projCircle(FR.galactic,true,200),'#c77dff',1.2,.6);
+  if(active.has('supergalactic'))polyline(dctx,projCircle(FR.supergalactic,true,200),'#5fe0a0',1.2,.6);
+  // суточная параллель звезды
+  polyline(dctx,projPar(Math.asin(clamp(starDir.y)),200),'#fff4c2',1,.45);
+  // Солнце
+  if(active.has('sun')){polyline(dctx,projPar(Math.asin(clamp(sunDir.y)),200),'#ffd24a',1,.4);
+    const sp=P(sunDir.clone().applyAxisAngle(YAXIS,-dayAngle));
+    if(sp){dctx.fillStyle='#ffd24a';dctx.beginPath();dctx.arc(sp.x,sp.y,5,0,Math.PI*2);dctx.fill();}}
+  // стороны света (точки горизонта: С=−u, Ю=u, В=v, З=−v)
+  dctx.font='600 11px Inter,sans-serif';dctx.textAlign='center';dctx.textBaseline='middle';
+  [['С',FR.horizon.u.clone().negate()],['Ю',FR.horizon.u],['В',FR.horizon.v],['З',FR.horizon.v.clone().negate()],
+   ['зенит',FR.horizon.pole]].forEach(([t,d])=>{const p=P(d);
+     if(p){dctx.fillStyle=t==='зенит'?'#8b93ad':'#cdb38a';dctx.fillText(t,p.x,p.y);}});
+  // точки восхода/захода звезды
+  [starRise,starSet].forEach(d=>{if(!d)return;const p=P(d);
+    if(p){dctx.fillStyle='#fff4c2';dctx.globalAlpha=.7;dctx.beginPath();dctx.arc(p.x,p.y,3,0,Math.PI*2);dctx.fill();dctx.globalAlpha=1;}});
+  // звезда
+  const stp=P(starDir.clone().applyAxisAngle(YAXIS,-dayAngle));
+  if(stp){dctx.fillStyle='#fff4c2';dctx.beginPath();dctx.arc(stp.x,stp.y,5,0,Math.PI*2);dctx.fill();
+    dctx.strokeStyle='rgba(255,244,194,.4)';dctx.lineWidth=1;dctx.beginPath();dctx.arc(stp.x,stp.y,8,0,Math.PI*2);dctx.stroke();}
+}
+
+function curveAlt(decR,phi,Hr){return Math.asin(Math.sin(phi)*Math.sin(decR)+Math.cos(phi)*Math.cos(decR)*Math.cos(Hr));}
+function curveAzN(decR,phi,Hr){const hh=curveAlt(decR,phi,Hr);
+  const sA=-Math.cos(decR)*Math.sin(Hr)/Math.cos(hh),cA=(Math.sin(decR)-Math.sin(phi)*Math.sin(hh))/(Math.cos(phi)*Math.cos(hh));
+  let A=Math.atan2(sA,cA)*R2D+180;return(A%360+360)%360;} // азимут от точки юга +180 = от севера
+function drawGraph(){
+  const{w,h}=GRAPH;gctx.clearRect(0,0,w,h);
+  const phi=parseInt(latEl.value)*D2R;
+  const sun=gQty==='sun';
+  const dir=sun?sunDir:starDir, decR=Math.asin(clamp(dir.y));
+  const isAng=(gQty==='A');                       // график азимута 0..360, иначе высоты −90..90
+  const x0=26,x1=w-8,y0=8,y1=h-16,pw=x1-x0,ph=y1-y0;
+  const Y=val=>isAng? y1-(val/360)*ph : y0+((90-val)/180)*ph; // h: +90 сверху
+  const X=Hdeg=>x0+(Hdeg/360)*pw;
+  // сетка
+  gctx.strokeStyle='rgba(255,255,255,.10)';gctx.lineWidth=1;gctx.fillStyle='#8b93ad';gctx.font='9px Inter,sans-serif';
+  gctx.textAlign='right';gctx.textBaseline='middle';
+  (isAng?[[0,'Ю'],[90,'З'],[180,'С'],[270,'В'],[360,'Ю']]:[[90,'90'],[0,'0'],[-90,'−90']]).forEach(([v,t])=>{
+    const y=Y(v);gctx.beginPath();gctx.moveTo(x0,y);gctx.lineTo(x1,y);gctx.stroke();gctx.fillText(t,x0-4,y);});
+  if(!isAng){const yh=Y(0);gctx.strokeStyle='rgba(255,158,74,.55)';gctx.lineWidth=1.3;gctx.beginPath();gctx.moveTo(x0,yh);gctx.lineTo(x1,yh);gctx.stroke();}
+  gctx.textAlign='center';gctx.textBaseline='top';
+  [0,6,12,18,24].forEach(hh=>{const x=X(hh*15);gctx.fillStyle='#8b93ad';gctx.fillText(hh+'ʰ',x,y1+3);});
+  // кривая координаты за сутки (по часовому углу H)
+  const col=sun?'#ffd24a':'#fff4c2';
+  gctx.strokeStyle=col;gctx.lineWidth=1.6;gctx.beginPath();let pen=false,prev=null;
+  for(let i=0;i<=360;i+=2){const Hr=i*D2R,val=isAng?curveAzN(decR,phi,Hr):curveAlt(decR,phi,Hr)*R2D;
+    const x=X(i),y=Y(val);if(isAng&&prev!==null&&Math.abs(val-prev)>180)pen=false;
+    if(pen)gctx.lineTo(x,y);else gctx.moveTo(x,y);pen=true;prev=val;}
+  gctx.stroke();
+  // живой курсор: текущий часовой угол объекта (синхронно со сферой)
+  const dH=dir.clone().applyAxisAngle(YAXIS,-dayAngle);let Hnow=Math.atan2(dH.z,dH.x)*R2D;if(Hnow<0)Hnow+=360;
+  const val=isAng?curveAzN(decR,phi,Hnow*D2R):curveAlt(decR,phi,Hnow*D2R)*R2D;
+  const cxp=X(Hnow),cyp=Y(val);
+  gctx.strokeStyle='rgba(255,255,255,.35)';gctx.lineWidth=1;gctx.beginPath();gctx.moveTo(cxp,y0);gctx.lineTo(cxp,y1);gctx.stroke();
+  gctx.fillStyle=col;gctx.beginPath();gctx.arc(cxp,cyp,3.5,0,Math.PI*2);gctx.fill();
+  gctx.fillStyle=col;gctx.textAlign='left';gctx.textBaseline='alphabetic';gctx.font='600 10px Inter,sans-serif';
+  gctx.fillText((isAng?'A = '+val.toFixed(0)+'°':'h = '+val.toFixed(0)+'°'),x0+3,y0+11);
+}
+
 let lastCoordTick=0;
 function animate(t){
   requestAnimationFrame(animate);
   if(mode!=='stop')dayAngle+=0.00004*speed;
-  sky.setRotationFromAxisAngle(YAXIS, mode==='sky'?dayAngle:0);
-  ground.setRotationFromAxisAngle(YAXIS, mode==='us'?-dayAngle:0);
+  sky.setRotationFromAxisAngle(YAXIS, mode==='sky'?-dayAngle:0);   // звёзды восходят на востоке, заходят на западе
+  ground.setRotationFromAxisAngle(YAXIS, mode==='us'?dayAngle:0);
   world.rotation.set(viewX,viewY,0);
+  earthGrp.visible=active.has('earth');
+  buildHA();
   world.updateMatrixWorld(true);
   if(mode!=='stop' && t-lastCoordTick>120){updateCoords();lastCoordTick=t;}
   updateLabels();
+  drawDome();drawGraph();
   renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
