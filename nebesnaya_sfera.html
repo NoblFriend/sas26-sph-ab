@@ -519,7 +519,7 @@ function updateLabels(){
 // interaction
 const active=new Set(['equator','horizon']);
 let viewX=0.35,viewY=0.6;
-let mode='sky',dayAngle=0,speed=40;
+let mode='sky',lastFrame='sky',dayAngle=0,speed=40;
 let dragging=null,last={x:0,y:0};
 const rayc=new THREE.Raycaster(),ndc=new THREE.Vector2();
 const cv=renderer.domElement;
@@ -548,7 +548,7 @@ document.querySelectorAll('.sys').forEach(el=>{
 });
 document.querySelectorAll('#seg button').forEach(b=>{
   b.addEventListener('click',()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');mode=b.dataset.mode;});
+    b.classList.add('on');mode=b.dataset.mode;if(mode!=='stop')lastFrame=mode;});
 });
 const latEl=document.getElementById('lat'),latv=document.getElementById('latv');
 latEl.addEventListener('input',()=>{const v=parseInt(latEl.value);latv.textContent=(v>=0?'+':'−')+Math.abs(v)+'°';rebuild();updateCoords();});
@@ -625,10 +625,23 @@ function drawDome(){
     const sp=P(sunDir.clone().applyAxisAngle(YAXIS,-dayAngle));
     if(sp){dctx.fillStyle='#ffd24a';dctx.beginPath();dctx.arc(sp.x,sp.y,5,0,Math.PI*2);dctx.fill();}}
   // стороны света (точки горизонта: С=−u, Ю=u, В=v, З=−v)
-  dctx.font='600 11px Inter,sans-serif';dctx.textAlign='center';dctx.textBaseline='middle';
-  [['С',FR.horizon.u.clone().negate()],['Ю',FR.horizon.u],['В',FR.horizon.v],['З',FR.horizon.v.clone().negate()],
-   ['зенит',FR.horizon.pole]].forEach(([t,d])=>{const p=P(d);
-     if(p){dctx.fillStyle=t==='зенит'?'#8b93ad':'#cdb38a';dctx.fillText(t,p.x,p.y);}});
+  dctx.font='600 11px Inter,sans-serif';dctx.textAlign='center';dctx.textBaseline='middle';dctx.fillStyle='#cdb38a';
+  [['С',FR.horizon.u.clone().negate()],['Ю',FR.horizon.u],['В',FR.horizon.v],['З',FR.horizon.v.clone().negate()]]
+    .forEach(([t,d])=>{const p=P(d);if(p)dctx.fillText(t,p.x,p.y);});
+  // оси: зенит/надир, полюса мира, полюса эклиптики
+  function axisPt(label,dir,inSky,color){
+    const d=inSky?dir.clone().applyAxisAngle(YAXIS,-dayAngle):dir.clone();
+    const p=P(d); if(!p)return;
+    dctx.fillStyle=color;dctx.beginPath();dctx.arc(p.x,p.y,2.8,0,Math.PI*2);dctx.fill();
+    dctx.fillText(label,p.x,p.y-8);
+  }
+  dctx.font='600 9.5px Inter,sans-serif';
+  axisPt('зенит',FR.horizon.pole,false,'#ffcf9a');
+  axisPt('надир',FR.horizon.pole.clone().negate(),false,'#ffcf9a');
+  if(active.has('equator')){axisPt('полюс мира N',FR.equator.pole,true,'#9ec9ff');
+    axisPt('полюс мира S',FR.equator.pole.clone().negate(),true,'#9ec9ff');}
+  if(active.has('ecliptic')){axisPt('полюс экл. N',FR.ecliptic.pole,true,'#8ef0c4');
+    axisPt('полюс экл. S',FR.ecliptic.pole.clone().negate(),true,'#8ef0c4');}
   // точки восхода/захода звезды
   [starRise,starSet].forEach(d=>{if(!d)return;const p=P(d);
     if(p){dctx.fillStyle='#fff4c2';dctx.globalAlpha=.7;dctx.beginPath();dctx.arc(p.x,p.y,3,0,Math.PI*2);dctx.fill();dctx.globalAlpha=1;}});
@@ -681,8 +694,9 @@ function animate(t){
   requestAnimationFrame(animate);
   if(mode!=='stop')dayAngle+=0.00004*speed;
   {const sH=(((dayAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2))/(Math.PI*2)*24; sidEl.value=sH; sidv.textContent=hms(sH*15);}
-  sky.setRotationFromAxisAngle(YAXIS, mode==='sky'?-dayAngle:0);   // звёзды восходят на востоке, заходят на западе
-  ground.setRotationFromAxisAngle(YAXIS, mode==='us'?dayAngle:0);
+  const rf=(mode==='stop')?lastFrame:mode;   // «Стоп» замирает на текущем s, не сбрасывая поворот
+  sky.setRotationFromAxisAngle(YAXIS, rf==='sky'?-dayAngle:0);     // звёзды восходят на востоке, заходят на западе
+  ground.setRotationFromAxisAngle(YAXIS, rf==='us'?dayAngle:0);
   world.rotation.set(viewX,viewY,0);
   earthGrp.visible=active.has('earth');
   buildHA();
