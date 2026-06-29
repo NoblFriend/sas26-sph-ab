@@ -17,7 +17,7 @@
 
   .card{position:fixed;background:var(--panel);backdrop-filter:blur(14px);
     border:1px solid var(--line);border-radius:16px;z-index:5}
-  #panel{top:16px;left:16px;width:316px;max-height:calc(100% - 32px);overflow:auto;padding:18px 18px 20px}
+  #panel{top:16px;left:16px;width:320px;max-height:calc(100% - 32px);overflow:auto;padding:18px 18px 20px}
   h1{margin:0 0 2px;font-size:16px;font-weight:700}
   .sub{margin:0 0 16px;font-size:11.5px;color:var(--muted);line-height:1.45}
   .group{margin-bottom:15px}
@@ -37,17 +37,23 @@
   .ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;
     font-size:12.5px;color:var(--ink);margin-bottom:11px}
   input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;
-    background:rgba(255,255,255,.18);width:134px;outline:none}
+    background:rgba(255,255,255,.18);width:130px;outline:none}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
     border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px var(--accent)}
   input[type=range]::-moz-range-thumb{width:15px;height:15px;border:none;border-radius:50%;background:var(--accent);cursor:pointer}
-  .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;min-width:56px;text-align:right;font-size:12px}
+  .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;min-width:62px;text-align:right;font-size:12px}
 
   .seg{display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--line);
     border-radius:10px;padding:4px;margin-bottom:11px}
   .seg button{flex:1;background:none;border:none;color:var(--muted);border-radius:7px;
     padding:7px 0;font:600 12.5px/1 'Inter',sans-serif;cursor:pointer;transition:.15s}
   .seg button.on{background:var(--accent);color:#0a0d16}
+
+  .planets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .planets button{flex:1 1 calc(25% - 5px);background:rgba(255,255,255,.05);border:1px solid var(--line);
+    color:var(--muted);border-radius:8px;padding:6px 2px;font:600 11px/1 'Inter',sans-serif;cursor:pointer;transition:.15s}
+  .planets button.on{background:var(--accent);color:#0a0d16}
+  .planets button:hover{background:rgba(255,255,255,.12)}
 
   #coords{margin-top:4px;border-top:1px solid var(--line);padding-top:13px}
   .crow{display:flex;justify-content:space-between;align-items:baseline;
@@ -76,22 +82,25 @@
 
 <div id="panel" class="card">
   <h1>Аберрация и параллакс</h1>
-  <p class="sub">Видимое годичное смещение звезды в касательной плоскости (ось ξ — вдоль эклиптики, η — к полюсу эклиптики). Оба эффекта чертят эллипс одной формы (полуоси относятся как sin β), но разного размера и со сдвигом фазы на 90°.</p>
+  <p class="sub">Маленький участок неба вокруг звезды (сетка — меридианы долготы λ и параллели широты β эклиптики). На нём звезда за год чертит эллипс. Смещения <b>сильно увеличены</b>; истинные κ и π — в таблице.</p>
 
   <div class="group">
     <div class="hd">Показать</div>
     <label class="sys on" data-k="aber"><input type="checkbox" checked>
       <span class="swatch" style="background:var(--aber);color:var(--aber)"></span>
-      <span><span class="nm">Аберрация</span><span class="rc">смещение к апексу (по скорости Земли), κ ≈ 20.49″</span></span></label>
+      <span><span class="nm">Аберрация</span><span class="rc">к апексу (по скорости Земли), κ = 20.49″/√a</span></span></label>
     <label class="sys on" data-k="para"><input type="checkbox" checked>
       <span class="swatch" style="background:var(--para);color:var(--para)"></span>
-      <span><span class="nm">Параллакс</span><span class="rc">смещение против положения Земли, π = 1/d</span></span></label>
+      <span><span class="nm">Параллакс</span><span class="rc">против положения Земли, π = a/d</span></span></label>
     <label class="sys on" data-k="total"><input type="checkbox" checked>
       <span class="swatch" style="background:var(--total);color:var(--total)"></span>
-      <span><span class="nm">Суммарный эллипс</span><span class="rc">векторная сумма обоих смещений</span></span></label>
+      <span><span class="nm">Суммарный эллипс</span><span class="rc">векторная сумма</span></span></label>
     <label class="sys on" data-k="vec"><input type="checkbox" checked>
       <span class="swatch" style="background:#fff;color:#fff"></span>
       <span class="nm">Векторы смещения</span></label>
+    <label class="sys on" data-k="grid"><input type="checkbox" checked>
+      <span class="swatch" style="background:#9fb4ff;color:#9fb4ff"></span>
+      <span class="nm">Сетка неба (λ, β)</span></label>
   </div>
 
   <div class="group">
@@ -104,47 +113,57 @@
       <span style="display:flex;align-items:center;gap:10px">
         <input id="lam" type="range" min="0" max="360" value="0" step="1">
         <span class="val" id="lamv">0°</span></span></div>
-    <div class="note">β задаёт форму эллипса: при β = 90° (полюс эклиптики) — круг, при β = 0° (на эклиптике) — отрезок.</div>
+    <div class="note">β задаёт форму эллипса (полуоси ∝ sin β): при β = 0° — отрезок, при β = 90° (полюс эклиптики) — круг, и меридианы сетки сходятся прямо в звезду.</div>
   </div>
 
   <div class="group">
-    <div class="hd">Параллакс</div>
-    <div class="ctl"><span>Расстояние&nbsp;d</span>
+    <div class="hd">Орбита наблюдателя</div>
+    <div class="ctl"><span>Большая полуось&nbsp;a</span>
       <span style="display:flex;align-items:center;gap:10px">
-        <input id="dist" type="range" min="0.2" max="20" value="1.5" step="0.1">
-        <span class="val" id="distv">1.5 пк</span></span></div>
-    <div class="ctl"><span>π крупнее&nbsp;×</span>
-      <span style="display:flex;align-items:center;gap:10px">
-        <input id="exag" type="range" min="1" max="60" value="25" step="1">
-        <span class="val" id="exagv">×25</span></span></div>
-    <div class="note">Реальный параллакс ≤ 0.77″ — в десятки раз меньше κ. Множитель раздувает <b>на картинке только параллакс</b>, чтобы его было видно рядом с аберрацией. В таблице — настоящие κ и π.</div>
-  </div>
-
-  <div class="group">
-    <div class="hd">Орбита Земли</div>
+        <input id="aau" type="range" min="0.2" max="35" value="1" step="0.01">
+        <span class="val" id="aauv">1.00 а.е.</span></span></div>
     <div class="ctl"><span>Эксцентриситет&nbsp;e</span>
       <span style="display:flex;align-items:center;gap:10px">
-        <input id="ecc" type="range" min="0" max="0.6" value="0" step="0.01">
-        <span class="val" id="eccv">0.00</span></span></div>
-    <div class="note">Реально e ≈ 0.017 (почти круг). При e > 0 скорость и расстояние Земли меняются по орбите — фигуры перестают быть идеальными эллипсами.</div>
+        <input id="ecc" type="range" min="0" max="0.7" value="0.017" step="0.001">
+        <span class="val" id="eccv">0.017</span></span></div>
+    <div class="ctl"><span>Расстояние&nbsp;d</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <input id="dist" type="range" min="0.2" max="50" value="1.5" step="0.1">
+        <span class="val" id="distv">1.5 пк</span></span></div>
+    <div class="note">Чем больше орбита a — тем медленнее движение (меньше κ), но шире база (больше π). На далёкой орбите параллакс честно обгоняет аберрацию — без всяких множителей.</div>
   </div>
 
   <div class="group">
-    <div class="hd">Время (год)</div>
+    <div class="hd">Планета наблюдателя <span id="kp2" style="float:right;color:var(--accent);text-transform:none;letter-spacing:0;font-weight:600"></span></div>
+    <div class="planets" id="planets">
+      <button data-a="0.387" data-e="0.206">Меркурий</button>
+      <button data-a="0.723" data-e="0.007">Венера</button>
+      <button data-a="1.000" data-e="0.017" class="on">Земля</button>
+      <button data-a="1.524" data-e="0.093">Марс</button>
+      <button data-a="5.203" data-e="0.048">Юпитер</button>
+      <button data-a="9.537" data-e="0.054">Сатурн</button>
+      <button data-a="19.19" data-e="0.047">Уран</button>
+      <button data-a="30.07" data-e="0.009">Нептун</button>
+    </div>
+    <div class="note">Орбита планеты (a, e); собственное вращение планеты не учитывается. Расстояние до звезды d задаётся отдельно.</div>
+  </div>
+
+  <div class="group">
+    <div class="hd">Время (оборот)</div>
     <div class="seg" id="seg">
       <button data-mode="run" class="on">Идёт</button>
       <button data-mode="stop">Стоп</button></div>
-    <div class="ctl"><span>День года</span>
+    <div class="ctl"><span>Фаза орбиты</span>
       <span style="display:flex;align-items:center;gap:10px">
-        <input id="time" type="range" min="0" max="365" value="0" step="1">
-        <span class="val" id="timev">0 (λ☉ 0°)</span></span></div>
+        <input id="time" type="range" min="0" max="360" value="0" step="1">
+        <span class="val" id="timev">0%</span></span></div>
     <div class="ctl"><span>Скорость</span>
       <span style="display:flex;align-items:center;gap:10px">
         <input id="spd" type="range" min="0" max="100" value="40" step="1"></span></div>
   </div>
 
   <div id="coords">
-    <div class="hd" style="margin-bottom:9px">Смещение сейчас (Δξ, Δη), ″</div>
+    <div class="hd" style="margin-bottom:9px">Сейчас (Δξ, Δη), ″ &nbsp;(истинные)</div>
     <div class="crow ca"><span class="k">аберрация</span><span class="v" id="rab">—</span></div>
     <div class="crow cp"><span class="k">параллакс</span><span class="v" id="rpa">—</span></div>
     <div class="crow ct"><span class="k">сумма</span><span class="v" id="rto">—</span></div>
@@ -152,8 +171,8 @@
   </div>
 
   <div class="hint">
-    <b>Почему эллипс.</b> За год скорость и положение Земли поворачиваются на 360°, и видимое направление на звезду описывает эллипс.<br>
-    <b>Форма.</b> Полуоси относятся как sin β: на полюсе эклиптики — круг, на эклиптике — отрезок.<br>
+    <b>Почему эллипс.</b> За оборот скорость и положение наблюдателя поворачиваются на 360° — видимое направление чертит эллипс.<br>
+    <b>Форма.</b> Полуоси ∝ sin β: на полюсе эклиптики круг, на эклиптике отрезок.<br>
     <b>Фаза.</b> Аберрация ∥ скорости, параллакс ∥ направлению на Солнце — сдвиг на 90°.
   </div>
 </div>
@@ -163,43 +182,34 @@
   <div class="betarow"><span>β</span>
     <input id="beta2" type="range" min="0" max="90" value="35" step="1">
     <span class="val" id="beta2v">35°</span></div>
-
-  <canvas id="diagAber" width="302" height="210"></canvas>
-  <div class="diagcap"><b style="color:var(--aber)">Аберрация.</b> Свет «сносит» по ходу Земли — видимое направление наклонено к вектору скорости <b>v</b>. За год <b>v</b> обходит круг, и звезда чертит эллипс (у звезды показан, сжат в sin β).</div>
-
-  <canvas id="diagPara" width="302" height="210"></canvas>
-  <div class="diagcap"><b style="color:var(--para)">Параллакс.</b> С разных точек орбиты звезда видна под чуть разным углом — смещение направлено против положения Земли. Эллипс у звезды — это орбита Земли, видимая со звезды (сжата в sin β).</div>
+  <canvas id="diagAber" width="302" height="206"></canvas>
+  <div class="diagcap"><b style="color:var(--aber)">Аберрация.</b> Свет «сносит» по ходу движения — видимое направление наклонено к скорости <b>v</b>. За оборот <b>v</b> обходит круг.</div>
+  <canvas id="diagPara" width="302" height="206"></canvas>
+  <div class="diagcap"><b style="color:var(--para)">Параллакс.</b> С разных точек орбиты звезда видна под разным углом — смещение против положения наблюдателя. Эллипс у звезды — орбита, видимая со звезды.</div>
 </div>
 
 <script>
-const D2R=Math.PI/180, R2D=180/Math.PI, A2S=R2D*3600, CLIGHT=63241; // c в а.е./год
-const show={aber:true,para:true,total:true,vec:true};
-let beta=35*D2R, lamStar=0*D2R, dist=1.5, exag=25, ecc=0;
-let day=0, mode='run', speed=40;   // day ∈ [0,365)
+const D2R=Math.PI/180, R2D=180/Math.PI, A2S=R2D*3600, CLIGHT=63241; // c, а.е./год
+const show={aber:true,para:true,total:true,vec:true,grid:true};
+let beta=35*D2R, lamStar=0, aAU=1, ecc=0.017, distPc=1.5;
+let phase=0, mode='run', speed=40;   // phase 0..360 (доля оборота)
 
-// ── орбита Земли (Кеплер), a=1 а.е., T=1 год, перигелий вдоль +x ──
-function kepler(M){let E=M;for(let i=0;i<8;i++)E-= (E-ecc*Math.sin(E)-M)/(1-ecc*Math.cos(E));return E;}
-function earth(t){                         // t — доля года [0,1)
-  const M=2*Math.PI*t, E=kepler(M), w=2*Math.PI, b=Math.sqrt(1-ecc*ecc), den=1-ecc*Math.cos(E);
-  return {pos:{x:Math.cos(E)-ecc, y:b*Math.sin(E), z:0},
-          vel:{x:-Math.sin(E)*w/den, y:b*Math.cos(E)*w/den, z:0}};      // а.е./год
-}
-// касательный базис на звезде (λ*,β):  êλ — рост долготы, êβ — к полюсу эклиптики
-function tangentBasis(){
-  return {el:[-Math.sin(lamStar),Math.cos(lamStar),0],
-          eb:[-Math.sin(beta)*Math.cos(lamStar),-Math.sin(beta)*Math.sin(lamStar),Math.cos(beta)]};}
-function vdot(v,e){return v.x*e[0]+v.y*e[1]+v.z*e[2];}
-function disp(t){                          // смещения в (ξ,η), ″
-  const s=earth(t), {el,eb}=tangentBasis(), pi=1/dist;
-  const aber={x:vdot(s.vel,el)/CLIGHT*A2S, y:vdot(s.vel,eb)/CLIGHT*A2S};
-  const para={x:-vdot(s.pos,el)*pi,        y:-vdot(s.pos,eb)*pi};
-  return {aber,para,pi,s};
-}
+// ── орбита наблюдателя (Кеплер) ──
+function kepler(M){let E=M;for(let i=0;i<8;i++)E-=(E-ecc*Math.sin(E)-M)/(1-ecc*Math.cos(E));return E;}
+function orbit(t){const T=Math.pow(aAU,1.5),M=2*Math.PI*t,E=kepler(M),w=2*Math.PI/T,b=Math.sqrt(1-ecc*ecc),den=1-ecc*Math.cos(E);
+  return{pos:{x:aAU*(Math.cos(E)-ecc),y:aAU*b*Math.sin(E),z:0},
+         vel:{x:-aAU*Math.sin(E)*w/den,y:aAU*b*Math.cos(E)*w/den,z:0}};}
+function basis(){const cb=Math.cos(beta),sb=Math.sin(beta),cl=Math.cos(lamStar),sl=Math.sin(lamStar);
+  return{s:[cb*cl,cb*sl,sb], el:[-sl,cl,0], eb:[-sb*cl,-sb*sl,cb]};}
+function vd(v,e){return v.x*e[0]+v.y*e[1]+v.z*e[2];}
+function disp(t){const o=orbit(t),B=basis();
+  return{aber:{x:vd(o.vel,B.el)/CLIGHT*A2S, y:vd(o.vel,B.eb)/CLIGHT*A2S},
+         para:{x:-vd(o.pos,B.el)/distPc,    y:-vd(o.pos,B.eb)/distPc}, o};}
+const kappa=()=>20.49/Math.sqrt(aAU), parx=()=>aAU/distPc;
 
 // ── canvases ──
 const planeCv=document.getElementById('plane'), pctx=planeCv.getContext('2d');
-const aberCv=document.getElementById('diagAber'), actx=aberCv.getContext('2d');
-const paraCv=document.getElementById('diagPara'), prctx=paraCv.getContext('2d');
+const aberCv=document.getElementById('diagAber'), paraCv=document.getElementById('diagPara');
 let PW,PH;
 function fit(){const dpr=Math.min(devicePixelRatio,2);
   PW=innerWidth;PH=innerHeight;planeCv.width=PW*dpr;planeCv.height=PH*dpr;pctx.setTransform(dpr,0,0,dpr,0,0);
@@ -207,154 +217,145 @@ function fit(){const dpr=Math.min(devicePixelRatio,2);
     cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';c.setTransform(dpr,0,0,dpr,0,0);cv._w=w;cv._h=h;});}
 addEventListener('resize',fit); fit();
 
-function niceStep(span){const raw=span/4,p=Math.pow(10,Math.floor(Math.log10(raw))),m=raw/p;
-  return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p;}
-
-// ── центральный вид: касательная плоскость ──
+// ── центральный вид: участок неба (ортографическая проекция вокруг звезды) ──
+const FOV=42*D2R;
+function v3(a){return a;}
+function dirLB(lon,lat){const cl=Math.cos(lat);return[cl*Math.cos(lon),cl*Math.sin(lon),Math.sin(lat)];}
+function dot3(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
 function drawPlane(){
   const w=PW,h=PH,cx=w/2,cy=h/2;
   pctx.clearRect(0,0,w,h);
-  // выборка локусов за год
-  const N=240, pi=1/dist;
-  const ab=[],pa=[],to=[];
-  let ext=0;
-  for(let i=0;i<=N;i++){const d=disp(i/N);
-    const a={x:d.aber.x,y:d.aber.y}, p={x:d.para.x*exag,y:d.para.y*exag};
-    ab.push(a);pa.push(p);to.push({x:a.x+p.x,y:a.y+p.y});
-    if(show.aber)ext=Math.max(ext,Math.abs(a.x),Math.abs(a.y));
-    if(show.para)ext=Math.max(ext,Math.abs(p.x),Math.abs(p.y));
-    if(show.total)ext=Math.max(ext,Math.abs(a.x+p.x),Math.abs(a.y+p.y));}
-  if(ext<=0)ext=20.49; ext*=1.15;
-  const sc=(Math.min(w,h)/2-70)/ext, X=v=>cx+v*sc, Y=v=>cy-v*sc;
-  // сетка
-  pctx.strokeStyle='rgba(255,255,255,.10)';pctx.lineWidth=1;
-  pctx.beginPath();pctx.moveTo(40,cy);pctx.lineTo(w-40,cy);pctx.moveTo(cx,40);pctx.lineTo(cx,h-40);pctx.stroke();
-  const step=niceStep(ext);
-  pctx.fillStyle='#5d667e';pctx.font='10px Inter,sans-serif';pctx.textAlign='center';pctx.textBaseline='top';
-  for(let v=step;v<=ext;v+=step){pctx.strokeStyle='rgba(255,255,255,.05)';
-    pctx.beginPath();pctx.arc(cx,cy,v*sc,0,Math.PI*2);pctx.stroke();
-    pctx.fillText(v.toFixed(v<1?1:0)+'″',X(v),cy+5);}
-  pctx.fillStyle='#7c8398';pctx.textAlign='left';pctx.fillText('ξ  (вдоль эклиптики, λ→)',w-40-160,cy-15);
-  pctx.fillText('η  (к полюсу эклиптики)',cx+13,46);
+  const B=basis(), scO=(Math.min(w,h)/2-60)/Math.sin(FOV);
+  const proj=d=>{if(dot3(d,B.s)<=Math.cos(FOV)-0.02)return null;return{x:cx+dot3(d,B.el)*scO, y:cy-dot3(d,B.eb)*scO};};
+  function poly(pts,color,wd,op){pctx.strokeStyle=color;pctx.globalAlpha=op;pctx.lineWidth=wd;pctx.beginPath();
+    let pen=false;pts.forEach(p=>{if(!p){pen=false;return;}if(pen)pctx.lineTo(p.x,p.y);else pctx.moveTo(p.x,p.y);pen=true;});pctx.stroke();pctx.globalAlpha=1;}
 
-  function path(arr,color,wd,op){pctx.strokeStyle=color;pctx.globalAlpha=op;pctx.lineWidth=wd;pctx.beginPath();
-    arr.forEach((p,i)=>{const px=X(p.x),py=Y(p.y);i?pctx.lineTo(px,py):pctx.moveTo(px,py);});pctx.stroke();pctx.globalAlpha=1;}
-  function dot(p,color,r){pctx.fillStyle=color;pctx.beginPath();pctx.arc(X(p.x),Y(p.y),r,0,Math.PI*2);pctx.fill();}
-  function vec(p,color){pctx.strokeStyle=color;pctx.globalAlpha=.55;pctx.lineWidth=1.5;
-    pctx.beginPath();pctx.moveTo(cx,cy);pctx.lineTo(X(p.x),Y(p.y));pctx.stroke();pctx.globalAlpha=1;}
-  if(show.aber)path(ab,'#4ea3ff',1.6,.85);
-  if(show.para)path(pa,'#ff9e4a',1.6,.8);
-  if(show.total)path(to,'#45d6a0',2,.9);
+  // сетка неба: меридианы (λ=const) и параллели (β=const)
+  if(show.grid){
+    const bd=beta*R2D, ld=lamStar*R2D, span=46;
+    for(let dl=-40;dl<=40;dl+=10){const lon=(ld+dl)*D2R, pts=[];
+      for(let la=Math.max(-89.5,bd-span);la<=Math.min(89.5,bd+span);la+=2)pts.push(proj(dirLB(lon,la*D2R)));
+      poly(pts,'#9fb4ff',dl===0?1.3:1,dl===0?.5:.28);}
+    for(let lat=Math.ceil((bd-span)/10)*10;lat<=bd+span;lat+=10){if(lat<-89||lat>89)continue;
+      const pts=[];for(let dl=-50;dl<=50;dl+=2)pts.push(proj(dirLB((ld+dl)*D2R,lat*D2R)));
+      poly(pts,'#9fb4ff',lat===0?1.3:1,lat===0?.5:.26);
+      const lp=proj(dirLB(ld*D2R,lat*D2R));if(lp){pctx.fillStyle='#7c8398';pctx.font='10px Inter,sans-serif';pctx.textAlign='left';pctx.textBaseline='bottom';pctx.fillText('β '+lat+'°',lp.x+4,lp.y-2);}}
+    // полюс эклиптики, если попал в поле
+    const NP=proj([0,0,1]);if(NP){pctx.fillStyle='#cdb38a';pctx.beginPath();pctx.arc(NP.x,NP.y,3,0,Math.PI*2);pctx.fill();
+      pctx.font='600 11px Inter,sans-serif';pctx.textAlign='center';pctx.textBaseline='bottom';pctx.fillText('полюс эклиптики',NP.x,NP.y-5);}
+  }
 
-  const d=disp(day/365); const aN={x:d.aber.x,y:d.aber.y}, pN={x:d.para.x*exag,y:d.para.y*exag}, tN={x:aN.x+pN.x,y:aN.y+pN.y};
-  if(show.vec){if(show.aber)vec(aN,'#4ea3ff');if(show.para)vec(pN,'#ff9e4a');if(show.total)vec(tN,'#45d6a0');}
-  if(show.aber)dot(aN,'#4ea3ff',4);
-  if(show.para)dot(pN,'#ff9e4a',4);
+  // эллипсы (увеличены единым множителем; относительные размеры κ:π настоящие)
+  const N=240; let maxA=0; const A=[],Pp=[],T=[];
+  for(let i=0;i<=N;i++){const d=disp(i/N);A.push(d.aber);Pp.push(d.para);T.push({x:d.aber.x+d.para.x,y:d.aber.y+d.para.y});
+    if(show.aber)maxA=Math.max(maxA,Math.hypot(d.aber.x,d.aber.y));
+    if(show.para)maxA=Math.max(maxA,Math.hypot(d.para.x,d.para.y));
+    if(show.total)maxA=Math.max(maxA,Math.hypot(d.aber.x+d.para.x,d.aber.y+d.para.y));}
+  if(maxA<=0)maxA=20.49;
+  const EXAG=0.42*Math.sin(FOV)*A2S/maxA;     // чтобы крупнейший эллипс занял ~0.42 поля
+  const skyPt=(ξ,η)=>{const k=ξ/A2S*EXAG, m=η/A2S*EXAG;
+    const d=[B.s[0]+B.el[0]*k+B.eb[0]*m, B.s[1]+B.el[1]*k+B.eb[1]*m, B.s[2]+B.el[2]*k+B.eb[2]*m];
+    const n=Math.hypot(d[0],d[1],d[2]);return proj([d[0]/n,d[1]/n,d[2]/n]);};
+  function ell(arr,color,wd,op){pctx.strokeStyle=color;pctx.globalAlpha=op;pctx.lineWidth=wd;pctx.beginPath();
+    arr.forEach((p,i)=>{const q=skyPt(p.x,p.y);if(!q)return;i?pctx.lineTo(q.x,q.y):pctx.moveTo(q.x,q.y);});pctx.closePath();pctx.stroke();pctx.globalAlpha=1;}
+  function dot(p,color,r){const q=skyPt(p.x,p.y);if(q){pctx.fillStyle=color;pctx.beginPath();pctx.arc(q.x,q.y,r,0,Math.PI*2);pctx.fill();}}
+  function vec(p,color){const q=skyPt(p.x,p.y);if(q){pctx.strokeStyle=color;pctx.globalAlpha=.6;pctx.lineWidth=1.6;
+    pctx.beginPath();pctx.moveTo(cx,cy);pctx.lineTo(q.x,q.y);pctx.stroke();pctx.globalAlpha=1;}}
+  if(show.aber)ell(A,'#4ea3ff',1.7,.9);
+  if(show.para)ell(Pp,'#ff9e4a',1.7,.85);
+  if(show.total)ell(T,'#45d6a0',2,.95);
+  const dN=disp(phase/360), tN={x:dN.aber.x+dN.para.x,y:dN.aber.y+dN.para.y};
+  if(show.vec){if(show.aber)vec(dN.aber,'#4ea3ff');if(show.para)vec(dN.para,'#ff9e4a');if(show.total)vec(tN,'#45d6a0');}
+  if(show.aber)dot(dN.aber,'#4ea3ff',4);
+  if(show.para)dot(dN.para,'#ff9e4a',4);
   if(show.total)dot(tN,'#45d6a0',5.5);
-  // истинная звезда
+
+  // истинная звезда (центр)
   pctx.strokeStyle='#fff4c2';pctx.lineWidth=1.4;
   pctx.beginPath();pctx.moveTo(cx-7,cy);pctx.lineTo(cx+7,cy);pctx.moveTo(cx,cy-7);pctx.lineTo(cx,cy+7);pctx.stroke();
   pctx.fillStyle='#fff4c2';pctx.font='600 11px Inter,sans-serif';pctx.textAlign='left';pctx.textBaseline='bottom';
-  pctx.fillText('истинное положение',cx+10,cy-4);
+  pctx.fillText(`звезда  β=${(beta*R2D).toFixed(0)}°`,cx+10,cy-4);
+  // оси λ→ , β↑ (направления êλ, êβ в проекции у центра)
+  pctx.fillStyle='#7c8398';pctx.font='10px Inter,sans-serif';
+  pctx.textAlign='left';pctx.textBaseline='middle';pctx.fillText('λ →',cx+62,cy+13);
+  pctx.textAlign='center';pctx.textBaseline='bottom';pctx.fillText('β ↑',cx+14,cy-58);
+  // примечание про увеличение
+  pctx.fillStyle='#5d667e';pctx.font='10px Inter,sans-serif';pctx.textAlign='left';pctx.textBaseline='top';
+  pctx.fillText(`смещения ×${EXAG.toFixed(0)} (для наглядности)`,16,h-22);
 }
 
-// ── 3D-схемы (вид орбиты под углом) ──
+// ── 3D-схемы орбиты ──
 function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
 function nrm(a){const n=Math.hypot(a[0],a[1],a[2]);return[a[0]/n,a[1]/n,a[2]/n];}
-const EL=24*D2R, AZ=-58*D2R;
-const CAM=[Math.cos(EL)*Math.cos(AZ),Math.cos(EL)*Math.sin(AZ),Math.sin(EL)];
+const EL=24*D2R, AZ=-58*D2R, CAM=[Math.cos(EL)*Math.cos(AZ),Math.cos(EL)*Math.sin(AZ),Math.sin(EL)];
 const RIGHT=nrm(cross([0,0,1],CAM)), UP=cross(CAM,RIGHT);
 function arrow2(ctx,x0,y0,x1,y1,color,wd){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=wd||1.6;
   ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();const a=Math.atan2(y1-y0,x1-x0),s=7;
   ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1-s*Math.cos(a-.4),y1-s*Math.sin(a-.4));
   ctx.lineTo(x1-s*Math.cos(a+.4),y1-s*Math.sin(a+.4));ctx.closePath();ctx.fill();}
-
-function drawDiagram(ctx,cv,kind){
-  const w=cv._w,h=cv._h,cx=w/2,cy=h/2+12,sc=Math.min(w,h)/2/2.0;
+function drawDiagram(cv,kind){
+  const ctx=cv.getContext('2d'),w=cv._w,h=cv._h,cx=w/2,cy=h/2+12,sc=Math.min(w,h)/2/2.0;
   ctx.clearRect(0,0,w,h);
   const P=(x,y,z)=>({x:cx+(x*RIGHT[0]+y*RIGHT[1]+z*RIGHT[2])*sc, y:cy-(x*UP[0]+y*UP[1]+z*UP[2])*sc});
-  // плоскость эклиптики — лёгкое кольцо + оси
+  const inv=1/aAU;  // нормируем орбиту под размер окна
   ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.beginPath();
-  for(let i=0;i<=64;i++){const a=i/64*2*Math.PI,p=P(1.32*Math.cos(a),1.32*Math.sin(a),0);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-  ctx.stroke();
-  // орбита Земли
+  for(let i=0;i<=64;i++){const a=i/64*2*Math.PI,p=P(1.32*Math.cos(a),1.32*Math.sin(a),0);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}ctx.stroke();
   ctx.strokeStyle='rgba(159,180,255,.5)';ctx.lineWidth=1.3;ctx.beginPath();
-  for(let i=0;i<=96;i++){const e=earth(i/96).pos,p=P(e.x,e.y,e.z);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-  ctx.closePath();ctx.stroke();
-  // Солнце
+  for(let i=0;i<=96;i++){const e=orbit(i/96).pos,p=P(e.x*inv,e.y*inv,0);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}ctx.closePath();ctx.stroke();
   const Sun=P(0,0,0);ctx.fillStyle='#ffd24a';ctx.beginPath();ctx.arc(Sun.x,Sun.y,5,0,Math.PI*2);ctx.fill();
-  // звезда (направление λ*,β), вынесена далеко
-  const sdir=[Math.cos(beta)*Math.cos(lamStar),Math.cos(beta)*Math.sin(lamStar),Math.sin(beta)];
-  const Rstar=1.75, St=P(sdir[0]*Rstar,sdir[1]*Rstar,sdir[2]*Rstar);
-  ctx.strokeStyle='rgba(255,244,194,.35)';ctx.setLineDash([3,3]);ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(Sun.x,Sun.y);ctx.lineTo(St.x,St.y);ctx.stroke();ctx.setLineDash([]);
-  // Земля сейчас
-  const es=earth(day/365), E=P(es.pos.x,es.pos.y,es.pos.z);
+  const sd=[Math.cos(beta)*Math.cos(lamStar),Math.cos(beta)*Math.sin(lamStar),Math.sin(beta)],Rs=1.75,St=P(sd[0]*Rs,sd[1]*Rs,sd[2]*Rs);
+  ctx.strokeStyle='rgba(255,244,194,.35)';ctx.setLineDash([3,3]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(Sun.x,Sun.y);ctx.lineTo(St.x,St.y);ctx.stroke();ctx.setLineDash([]);
+  const o=orbit(phase/360),E=P(o.pos.x*inv,o.pos.y*inv,0);
   ctx.fillStyle='#6fa0ff';ctx.beginPath();ctx.arc(E.x,E.y,4,0,Math.PI*2);ctx.fill();
-
-  const {el,eb}=tangentBasis(), lamE=Math.atan2(es.pos.y,es.pos.x), theta=lamE-lamStar;
-  if(kind==='aber'){
-    // вектор скорости в точке Земли
-    const v=nrm([es.vel.x,es.vel.y,es.vel.z]), L=0.5;
-    const V=P(es.pos.x+v[0]*L,es.pos.y+v[1]*L,es.pos.z+v[2]*L);
-    arrow2(ctx,E.x,E.y,V.x,V.y,'#4ea3ff',1.8);
-    ctx.fillStyle='#9ccaff';ctx.font='600 10px Inter,sans-serif';ctx.textAlign='left';ctx.fillText('v',V.x+3,V.y-2);
-  }else{
-    // луч зрения от Земли (параллельно направлению на звезду — к той же звезде)
-    ctx.strokeStyle='rgba(255,158,74,.6)';ctx.lineWidth=1.2;
-    ctx.beginPath();ctx.moveTo(E.x,E.y);ctx.lineTo(St.x,St.y);ctx.stroke();
-  }
-  // эллипс смещения у звезды (в касательной плоскости звезды), сильно увеличен
-  const Lsky=0.42;
-  function skyPt(th){let u,wv;
-    if(kind==='aber'){u=Math.cos(th);wv=Math.sin(beta)*Math.sin(th);}
-    else{u=-Math.sin(th);wv=Math.sin(beta)*Math.cos(th);}
-    const x=sdir[0]*Rstar+(u*el[0]+wv*eb[0])*Lsky, y=sdir[1]*Rstar+(u*el[1]+wv*eb[1])*Lsky, z=sdir[2]*Rstar+(u*el[2]+wv*eb[2])*Lsky;
-    return P(x,y,z);}
-  const col=kind==='aber'?'#4ea3ff':'#ff9e4a';
-  ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();
-  for(let i=0;i<=120;i++){const p=skyPt(i/120*2*Math.PI);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-  ctx.closePath();ctx.stroke();
-  // истинная звезда + текущее видимое положение + вектор
+  const B=basis(), lamE=Math.atan2(o.pos.y,o.pos.x), theta=lamE-lamStar;
+  if(kind==='aber'){const v=nrm([o.vel.x,o.vel.y,0]),V=P(o.pos.x*inv+v[0]*0.5,o.pos.y*inv+v[1]*0.5,0);
+    arrow2(ctx,E.x,E.y,V.x,V.y,'#4ea3ff',1.8);ctx.fillStyle='#9ccaff';ctx.font='600 10px Inter,sans-serif';ctx.fillText('v',V.x+3,V.y-2);}
+  else{ctx.strokeStyle='rgba(255,158,74,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(E.x,E.y);ctx.lineTo(St.x,St.y);ctx.stroke();}
+  const Lsky=0.42, sb=Math.sin(beta);
+  const skyPt=th=>{let u,wv;if(kind==='aber'){u=Math.cos(th);wv=sb*Math.sin(th);}else{u=-Math.sin(th);wv=sb*Math.cos(th);}
+    return P(sd[0]*Rs+(u*B.el[0]+wv*B.eb[0])*Lsky, sd[1]*Rs+(u*B.el[1]+wv*B.eb[1])*Lsky, sd[2]*Rs+(u*B.el[2]+wv*B.eb[2])*Lsky);};
+  const col=kind==='aber'?'#4ea3ff':'#ff9e4a';ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();
+  for(let i=0;i<=120;i++){const p=skyPt(i/120*2*Math.PI);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}ctx.closePath();ctx.stroke();
   ctx.fillStyle='#fff4c2';ctx.beginPath();ctx.arc(St.x,St.y,3,0,Math.PI*2);ctx.fill();
-  const ap=skyPt(theta);
-  arrow2(ctx,St.x,St.y,ap.x,ap.y,col,1.6);
+  const ap=skyPt(theta);arrow2(ctx,St.x,St.y,ap.x,ap.y,col,1.6);
   ctx.fillStyle=col;ctx.beginPath();ctx.arc(ap.x,ap.y,3.2,0,Math.PI*2);ctx.fill();
 }
 
 // ── readout ──
 function fmt(p){return `(${p.x>=0?'+':'−'}${Math.abs(p.x).toFixed(2)}, ${p.y>=0?'+':'−'}${Math.abs(p.y).toFixed(2)})`;}
-function readout(){const d=disp(day/365), total={x:d.aber.x+d.para.x,y:d.aber.y+d.para.y};
+function readout(){const d=disp(phase/360),tot={x:d.aber.x+d.para.x,y:d.aber.y+d.para.y};
   document.getElementById('rab').textContent=fmt(d.aber);
   document.getElementById('rpa').textContent=fmt(d.para);
-  document.getElementById('rto').textContent=fmt(total);
-  document.getElementById('rkp').textContent=`20.49″ / ${d.pi.toFixed(3)}″`;}
+  document.getElementById('rto').textContent=fmt(tot);
+  document.getElementById('rkp').textContent=`${kappa().toFixed(2)}″ / ${parx().toFixed(2)}″`;
+  document.getElementById('kp2').textContent=`κ ${kappa().toFixed(1)}″ · π ${parx().toFixed(1)}″`;}
 
 // ── controls ──
 document.querySelectorAll('.sys').forEach(el=>el.addEventListener('click',()=>{
   const k=el.dataset.k,cb=el.querySelector('input');cb.checked=!cb.checked;show[k]=cb.checked;el.classList.toggle('on',cb.checked);}));
 function bind(id,fn){const e=document.getElementById(id);e.addEventListener('input',()=>fn(e));}
-function setBeta(v){beta=v*D2R;
-  document.getElementById('beta').value=v;document.getElementById('beta2').value=v;
+function setBeta(v){beta=v*D2R;document.getElementById('beta').value=v;document.getElementById('beta2').value=v;
   document.getElementById('betav').textContent=v+'°';document.getElementById('beta2v').textContent=v+'°';}
 bind('beta',e=>setBeta(parseInt(e.value)));
 bind('beta2',e=>setBeta(parseInt(e.value)));
 bind('lam',e=>{lamStar=parseInt(e.value)*D2R;document.getElementById('lamv').textContent=e.value+'°';});
-bind('dist',e=>{dist=parseFloat(e.value);document.getElementById('distv').textContent=dist.toFixed(1)+' пк';});
-bind('exag',e=>{exag=parseInt(e.value);document.getElementById('exagv').textContent='×'+exag;});
-bind('ecc',e=>{ecc=parseFloat(e.value);document.getElementById('eccv').textContent=ecc.toFixed(2);});
+bind('aau',e=>{aAU=parseFloat(e.value);document.getElementById('aauv').textContent=aAU.toFixed(2)+' а.е.';});
+bind('ecc',e=>{ecc=parseFloat(e.value);document.getElementById('eccv').textContent=ecc.toFixed(3);});
+bind('dist',e=>{distPc=parseFloat(e.value);document.getElementById('distv').textContent=distPc.toFixed(1)+' пк';});
 bind('spd',e=>{speed=parseInt(e.value);});
-bind('time',e=>{day=parseInt(e.value);setMode('stop');});
+bind('time',e=>{phase=parseInt(e.value);setMode('stop');});
 function setMode(m){mode=m;document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));}
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+document.querySelectorAll('#planets button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#planets button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  aAU=parseFloat(b.dataset.a);ecc=parseFloat(b.dataset.e);
+  document.getElementById('aau').value=aAU;document.getElementById('aauv').textContent=aAU.toFixed(2)+' а.е.';
+  document.getElementById('ecc').value=ecc;document.getElementById('eccv').textContent=ecc.toFixed(3);}));
 
-function loop(){
-  requestAnimationFrame(loop);
-  if(mode==='run'){day=(day+0.25*speed/40)%365;document.getElementById('time').value=day;}
-  const es=earth(day/365), lamS=((Math.atan2(es.pos.y,es.pos.x)*R2D+180)%360+360)%360;
-  document.getElementById('timev').textContent=`${day.toFixed(0)} (λ☉ ${lamS.toFixed(0)}°)`;
-  drawPlane(); drawDiagram(actx,aberCv,'aber'); drawDiagram(prctx,paraCv,'para'); readout();
-}
+function loop(){requestAnimationFrame(loop);
+  if(mode==='run'){phase=(phase+0.25*speed/40)%360;document.getElementById('time').value=phase;}
+  document.getElementById('timev').textContent=(phase/3.6).toFixed(0)+'%';
+  drawPlane();drawDiagram(aberCv,'aber');drawDiagram(paraCv,'para');readout();}
 requestAnimationFrame(loop);
 </script>
 </body>
